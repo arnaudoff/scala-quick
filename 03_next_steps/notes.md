@@ -85,3 +85,70 @@ val oneTwoThree = 1 :: twoThree
 
 Note: If the method name ends in a colon, the method is invoked on the right operand. Therefore,
 in `1 :: twoThree`, the `::` method is invoked on `twoThree`, passing in `1`, like this: `twoThree.::(1)`.
+
+## Tuples
+
+- Tuples are immutable, but unlike lists, they can contain different
+types of elements, e.g a tuple can contain an integer and a string at
+the same time
+- A simple use case of tuples is when you want to return multiple
+ heterogenous objects from a method
+- Tuple elements are accessed by at dot, underscore, and one-based index
+of the element
+
+Example:
+
+```scala
+val tuple = (42, "foobar")
+println(tuple._1)
+println(tuple._2)
+```
+
+Notes:
+- Scala infers the type of the tuple to be `Tuple2[Int, String]`
+- The actual type of the tuple depends on the number of elements and their types
+
+## Sets and maps
+
+- Since Scala allows functional and imperative style, its collections
+libraries support both mutable and immutable collections
+- For sets and maps, Scala models mutability in the class hierarchy
+- The Scala API contains a base trait for sets, and two subtraits: one for
+mutable sets and one for immutable sets
+- Concrete set classes in the API, such as the `HashSet`, extend either the
+mutable or immutable `Set` trait
+- Note that in Scala, traits are "extended" or "mixed in", not "implemented"
+like Java interfaces (although they are almost identical)
+
+Example (creating a default `Set`):
+
+```scala
+var mathSet = Set("Calculus", "Discrete mathematics")
+mathSet += "Linear algebra"
+```
+
+This creates an immutable `Set` similarly to how lists and arrays are created
+(by invoking the `apply` factory method on the `Set` companion object). The type of `mathSet` is inferred to be
+`Set[String]`. Note that the default is immutable, so `+=` here yields a new
+set with the element added.
+
+If you want a mutable set, you'll need to explicitly import it:
+
+```scala
+import scala.collection.mutable.Set
+
+val mathSet = Set("Calculus", "Linear algebra")
+mathSet += "Geometry"
+```
+
+Sometimes, you may also want an explicit set class. In order to use it, simply
+import it and use the factory method on its companion object, e.g. for an
+immutable `HashSet`: (Psst, companion objects will be explained in detail later)
+
+```scala
+import scala.collection.immutable.HashSet
+
+val hashSet = HashSet("Banana", "Orange")
+println(hashSet)
+```
+
