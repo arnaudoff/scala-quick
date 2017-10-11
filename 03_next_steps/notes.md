@@ -152,3 +152,46 @@ val hashSet = HashSet("Banana", "Orange")
 println(hashSet)
 ```
 
+## Maps
+
+- As with sets, Scala provides mutable and immutable versions of `Map`,
+using a class hierarchy
+- There's a base `Map` trait in the `scala.collection` package and
+two subtrait Maps: a mutable Map in `scala.collection.mutable` and an
+immutable one in `scala.collection.immutable`
+- Maps are also initialized with the `apply` factory method, similar to how
+arrays, lists and sets are initialized
+
+Example (a mutable map):
+
+```scala
+import scala.collection.mutable.Map
+
+val treasureMap = Map[Int, String]()
+treasureMap += (1 -> "Go to island.")
+treasureMap += (2 -> "Find big X on ground.")
+treasureMap += (3 -> "Dig.")
+println(treasureMap(2))
+```
+
+Notes:
+- When you say `1 -> "Go to island."`, you are calling a method named
+`->` on an integer with the value `1`, passing in a string with the
+value ``"Go to island."``
+- In general, the `->` method can be invoked on any object in any Scala
+program, returns a two-element tuple containg the key and value
+- The tuple is passed to the `+=` method of the map object
+- The last line prints the value of the key `2`
+- As with sets, the immutable variant of a map is the default
+- The mechanism that allows `->` to be invoked on any object is
+ called *implicit conversion* and is covered later
+
+ Example (here the map is immutable by default):
+
+```scala
+val romanNumeral = Map(1 -> "I", 2 -> "II", 3 -> "III", 4 -> "IV", 5 -> "V")
+println(romanNumeral(4))
+```
+
+- Note the missing explicit type parameterization here: `[Int, String]` is
+inferred by the compiler from the values passed to the map factory
