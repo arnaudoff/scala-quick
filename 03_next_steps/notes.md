@@ -43,3 +43,45 @@ Interesting:
     access is simply a method call in Scala
 - In general, any application of an object to some arguments in parens will be
     transformed to `apply` method call
+- Similarly, array assignment such as `fruits(i) = "foo"` is equivalent to `fruits.update(i, "foo")`
+
+In general, Scala treats everything from arrays to expressions as objects with methods, and yet the compiler optimizes the performance overhead in the compiled code.
+
+Typically, one would use a more concise way to initialize the above array:
+
+```scala
+val numNames = Array("zero", "one", "two")
+```
+
+Here, the type is inferred. Also, behind  the scenes you are calling a factory method named `apply` on the `Array` class, which returns the array.
+
+## Lists
+
+- As noted, arrays are fixed-length mutable objects of the same type
+- For immutable sequence of objects, use Scala's `List` class
+- Scala's `List` differs from `java.util.List` in that Scala lists are always immutable
+- Scala's lists are perfect fit for functional style of programming
+
+Example:
+
+```scala
+val oneTwoThree = List(1, 2, 3)
+```
+
+Since lists are immutable, operations on them create new lists, e.g. `:::` is used for list concatenation like this:
+
+```scala
+val oneTwo = List(1, 2)
+val threeFour = List(3, 4)
+val oneTwoThreeFour = oneTwo ::: threeFour
+```
+
+Another useful operation is `::` (pronounced cons), which prepends to the beginning of a list:
+
+```scala
+val twoThree = List(2, 3)
+val oneTwoThree = 1 :: twoThree
+```
+
+Note: If the method name ends in a colon, the method is invoked on the right operand. Therefore,
+in `1 :: twoThree`, the `::` method is invoked on `twoThree`, passing in `1`, like this: `twoThree.::(1)`.
