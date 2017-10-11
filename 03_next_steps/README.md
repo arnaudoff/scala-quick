@@ -195,3 +195,69 @@ println(romanNumeral(4))
 
 - Note the missing explicit type parameterization here: `[Int, String]` is
 inferred by the compiler from the values passed to the map factory
+
+## Recognize the functional style
+
+- As mentioned, Scala allows you to program imperatively, but encourages
+functional style
+- Learning to program in functional style will expand not only your Scala
+knowledge, but your horizons in general
+- If the code contains any `var`s, it's probably imperative
+- If the code contains only `val`s, it's probably functional
+- Therefore, we try to minimise the use of `var`s in our Scala code
+
+Example (imperative style):
+
+```scala
+def printArgs(args: Array[String]): Unit = {
+  var i = 0
+  while (i < args.length) {
+    println(args(i))
+    i += 1
+  }
+}
+```
+
+Getting rid of the `vars`, we get:
+
+```scala
+def printArgs(args: Array[String]): Unit = {
+  for (arg <- args)
+    println(arg)
+}
+```
+
+Increasing our love for Scala, we get:
+
+```scala
+def printArgs(args: Array[String]): Unit = {
+  args.foreach(println)
+}
+```
+
+- The refactored code is clearer, concise, and less error-prone
+- This is the reason Scala encourages functional style
+
+Notes:
+- The refactored method is not purely functional though: it has a side
+effect (printing to stdout)
+- We typically tell that a function has side effects by noticing that the
+result type is Unit
+
+```scala
+def formatArgs(args: Array[String]) = args.mkString("\n")
+
+println(formatArgs(args))
+```
+
+The above purely functional approach (no side effects or `var`s)
+uses `mkString` on the args array, which returns a
+string consisting of the result of calling `toString` on each element
+separated by the passed string.
+
+It's vital to know that every useful program has side effects of some
+form, it's all about minimizing these areas in your programs.
+
+In conclusion, prefer vals, immutable objects, and methods without side
+effects.  Use vars, mutable objects, and methods with side effects when
+there's no other option.
