@@ -242,7 +242,7 @@ Notes:
 - The refactored method is not purely functional though: it has a side
 effect (printing to stdout)
 - We typically tell that a function has side effects by noticing that the
-result type is Unit
+result type is `Unit`
 
 ```scala
 def formatArgs(args: Array[String]) = args.mkString("\n")
@@ -251,13 +251,14 @@ println(formatArgs(args))
 ```
 
 The above purely functional approach (no side effects or `var`s)
-uses `mkString` on the args array, which returns a
+uses `mkString` on the `args` array, which returns a
 string consisting of the result of calling `toString` on each element
 separated by the passed string.
 
 It's vital to know that every useful program has side effects of some
 form, it's all about minimizing these areas in your programs.
 
-In conclusion, prefer vals, immutable objects, and methods without side
-effects.  Use vars, mutable objects, and methods with side effects when
+In conclusion, prefer `val`s, immutable objects, and methods without side
+effects.  Use `var`s, mutable objects, and methods with side effects when
 there's no other option.
+
