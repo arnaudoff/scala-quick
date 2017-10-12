@@ -50,3 +50,71 @@ the same class
 (because outsiders can't mutate it)
 - By default, the access modifier is public, so where you say
 "public" in Java, you say nothing in Scala
+
+Now, let's use another example:
+
+```scala
+class ChecksumAccumulator {
+  private var sum = 0
+
+  def add(b: Byte): Unit = {
+    sum += b
+  }
+
+  def checksum(): Int = {
+    return ~(sum & 0xFF) + 1
+  }
+}
+```
+
+- Both `add` and `checksum` are example for methods
+- Similarly to other languages, in Scala parameters to a method can be
+used inside it
+- Note that they are `val`s, and not `var`s: you can't reassign a parameter
+inside a method
+
+```scala
+def add(b: Byte): Unit = {
+  b = 1 // invalid
+}
+```
+- You can omit the return from `checksum`: in the absence of any explicit
+return, Scala methods return the last evaluated expression
+- In that sense, it's better to think of methods as expressions that
+yield one value, which is returned
+- In fact, this way of thinking forces you to refactor large methods into
+small, concise ones
+
+We can be even more concise: if a method computer only a single expression, you
+can omit the curly braces
+
+```scala
+class ChecksumAccumulator {
+  private var sum = 0
+  def add(b: Byte) { sum += b }
+  def checksum(): Int = ~(sum & 0xFF) + 1
+}
+```
+
+- Written this way, `add` looks more like a procedure: a method executed
+only for its side effects (reassigning `sum`)
+- So, leaving off the result type and the equals sign and seeing the
+body of the method in curly braces is a good example of indication that
+a method is non-functional
+
+**Note**: Watch out for missing `=`! Whenever you leave it off before the
+body of a function, its result type is assumed to be `Unit` and even if
+you compute and return some value, it'll be lost!
+
+```scala
+def f(): Unit = "this String gets lost"
+```
+
+Same goes to
+
+```scala
+def g() { "this String gets lost as well" }
+```
+
+
+
