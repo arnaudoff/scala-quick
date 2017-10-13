@@ -1,8 +1,10 @@
 # Classes and objects
 
+
 In this lecture, you will learn more about classes, fields and methods in Scala. 
 
 ## Classes, fields and methods
+
 
 - Just like in any OO language, a class is a blueprint for objects
 - You can create objects with the `new` keyword
@@ -116,5 +118,65 @@ Same goes to
 def g() { "this String gets lost as well" }
 ```
 
+## Singleton objects
 
+- As mentioned in the first lecture, Scala conforms to the OO principles
+more than Java because classes in Scala cannot have static members
+- Instead, Scala provides *singleton objects*
+- A singleton object definition looks like a class, except that you use the
+`object` keyword
 
+```scala
+import scala.collection.mutable.Map
+
+object ChecksumAccumulator {
+
+  private val cache = Map[String, Int]()
+
+  def calculate(s: String): Int =
+    if (cache.contains(s))
+      cache(s)
+    else {
+      val acc = new ChecksumAccumulator
+      for (c <- s)
+        acc.add(c.toByte)
+      val cs = acc.checksum()
+      cache += (s -> cs)
+      cs
+    }
+  }
+}
+```
+
+The code is pretty much self-explanatory so we will concentrate on the concepts
+rather than explaining its purpose:
+
+- The singleton object has the same name as the class in the previous example
+- When a singleton object shares the same name with a class, it's called
+the *companion object* of the class
+- The class and its companion object should be defined in the same source file
+- A class and its companion object can access each other's private members
+- From Java's point of view, singleton objects can be seen as the home for any
+static methods one might have written in Java
+- Methods on singleton objects are invoked with a dot and the name of the
+method, i.e:
+
+```scala
+ChecksumAccumulator.calculate("Eat, drink, code, repeat")
+```
+- However, a singleton object is more than a holder of static methods - it's a
+*first-class object*: its name can be thought of as a name tag attached to the
+object
+- Defining a singleton object doesn't define a type: given only a definition of
+`ChecksumAccumulator`, you can't create a variable of type `ChecksumAccumulator`
+- Rather, the type is defined by the compaion class of the singleton object!
+- Singleton objects, however, can extend classes and can mix in traits
+- Singleton objects, unlike classes, cannot take parameters (because you can't
+    instantiate them in the first place)
+- Singleton objects are typically implemented as an instance of a synthetic
+class referenced from a static variable (they have similar initialization
+semantics as Java statics: a singleton object is initialized the first time some
+code accesses it)
+- A singleton object that does not have a companion class is called a *standalone
+object* (typically useful for collecting utility methods and defining an
+entry point)
