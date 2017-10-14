@@ -270,3 +270,4 @@ object executed by the `Application` trait
 In conclusion, use `Application` only when your program is simple enough and
 single-threaded.
 
+
