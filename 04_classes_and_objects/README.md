@@ -240,15 +240,15 @@ Note that instead of giving it a file with `.scala` extension, you just supply
 the name of the standalone object containing the `main` method with the proper
 signature.
 
-## Another way to create an application: the Application trait
+## Another way to create an application: the `App` trait
 
-Scala offers a trait called `Application`, which can make our lives a bit
+Scala offers a trait called `App`, which can make our lives a bit
 easier:
 
 ```scala
 import ChecksumAccumulator.calculate
 
-object Foo extends Application {
+object Foo extends App {
   for (thing <- List("foo", "bar", "baz"))
     println(thing + ": " + calculate(thing))
 }
@@ -259,15 +259,4 @@ would've put in the `main` method directly in the singleton object
 object inherits
 - The code between the curly braces is collected into a *primary constructor* of
 the singleton object, and is executed as soon as the class is initialized
-
-Note that inheriting from `Application` is shorter, but has some downsides:
-- Can't be used if you need to access command line args
-- You need an explicit main method if your program is multithreaded (because of
-JVM restrictions)
-- Some implementations of the JVM do not optimize the initialization code of an
-object executed by the `Application` trait
-
-In conclusion, use `Application` only when your program is simple enough and
-single-threaded.
-
 

@@ -1,6 +1,5 @@
 # A Scalable language
 
-
 - Scala stands for scalable language, therefore scalability is main design goal
 - Applicable from small scripts to complex systems
 - Runs on the JVM, interoperates with Java stuff easily
@@ -37,7 +36,6 @@ make it perfect yourself
 defined in the standard library as a wrapper for the `java.math.BigInteger`. If
 it was missing, could be easily defined
 
-
 ### Growing new control structures
 
 - The same philosophy applies to control structures
@@ -46,9 +44,7 @@ Erlang's, which supports constructs such as `recipient ! msg` thanks to Scala's
 flexbility: the actors themselves are defined in the library, but do naturally
 feel like integral part of the Scala language
 
-
 ## What makes Scala scalable?
-
 
 - The combination of OO and functional programming
 - Scala does not deviate from OO principles, e.g by allowing static fields and

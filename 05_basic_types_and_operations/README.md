@@ -201,3 +201,5 @@ is actually `(2.0).unary_-`
 ## Arithmetic operations
 - Scala supports the typical arithmetic methods: addition (`+`), substraction
 (`-`), multiplication (`*`), division (`/`) and remainder (`%`)
+
+## Relational and logical operations
