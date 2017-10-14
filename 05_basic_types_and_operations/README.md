@@ -133,3 +133,71 @@ def updateRecordByName(r: Symbol, value: Any) {
 updateRecordByName('age, 15)
 ```
 - Symbols are interned
+
+## Operators are methods
+
+- As mentioned earlier, Scala's operators are actually nice syntax for
+ordinary method calls
+
+```scala
+val sum = 1 + 2 // Scala invokes (1).+(2)
+```
+
+- In fact, `Int` has several overloaded + methods that take different
+parameter types
+
+```scala
+val longSom = 1 + 2L // Scala invokes (1).+(2L)
+```
+
+- Of course, it's worth to note that operator notation is not limited to
+methods like + that look like operators in other languages, you can use
+**any** method in operator notation
+
+```scala
+val s = "Hello, world!"
+s indexOf 'o' // Scala invokes s.indexOf('o')
+```
+
+Note that `indexOf` has an overload, which can be called like that:
+
+```scala
+s indexOf ('o', 5) // Scala invokes s.indexOf('o', 5)
+```
+
+- **Key takeaway**: in Scala operators are not language syntax, any method can
+be an operator: it's how you use it that makes it an operator or not.
+
+```scala
+s.indexOf('o') // indexOf is NOT an operator, using ordinary method call here
+s indexOf 'o' // indexOf is an operator, using operator notation here
+```
+
+In Scala, there's three types of operator notation:
+- Infix operator notation (binary): the method to invoke sits between the
+object and the parameters, as in `7 + 2`
+- Prefix operator notation (unary): the method name is placed before the object,
+e.g `-7`, `!found`, `~0xFF`
+- Postfix operator notation (unary): the method name is placed after the object,
+e.g. `7 toLong`
+
+Note:
+- Postfix operators are methods that take no arguments when invoked without a dot
+or parens. In Scala, empty parens on method calls can be left off.
+- By convention, you include the parens if the method has side effects,
+    otherwise simply use postfix operator notation:
+
+```scala
+val s = "Hello, world!"
+s toLowerCase // postfix operator notation (the method requires no arguments)
+```
+
+Interesting:
+- When transforming operator notation to method call for unary operator,
+Scala uses `unary_` prepended to the operator character, e.g `-2.0`
+is actually `(2.0).unary_-`
+- Only `+`, `-`, `!` and `~` are allowed as prefix operators
+
+## Arithmetic operations
+- Scala supports the typical arithmetic methods: addition (`+`), substraction
+(`-`), multiplication (`*`), division (`/`) and remainder (`%`)
