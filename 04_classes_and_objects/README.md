@@ -173,10 +173,100 @@ object
 - Singleton objects, however, can extend classes and can mix in traits
 - Singleton objects, unlike classes, cannot take parameters (because you can't
     instantiate them in the first place)
-- Singleton objects are typically implemented as an instance of a synthetic
-class referenced from a static variable (they have similar initialization
-semantics as Java statics: a singleton object is initialized the first time some
-code accesses it)
+- Singleton objects are typically implemented as an instance of a *synthetic
+class* (objct name + dollar sign, e.g. `ChecksumAccumulator$`) referenced from
+a static variable (they have similar initialization semantics as Java statics:
+a singleton object is initialized the first time some code accesses it)
 - A singleton object that does not have a companion class is called a *standalone
 object* (typically useful for collecting utility methods and defining an
 entry point)
+
+## A Scala application
+
+- To run a Scala program, you have to supply a standalone singleton object
+with a `main` method that takes one parameter: an `Array[String]` and has a
+result type of `Unit`
+
+Example:
+
+```scala
+import ChecksumAccumulator.calculate
+
+object Foo {
+  def main(args: Array[String]) {
+    for (arg <- args)
+      println(arg + ": " + calculate(arg))
+  }
+}
+```
+
+Notes:
+
+- Scala implicitly imports members of the packages `java.lang` and `scala` into
+every source file
+- Scala implicitly imports the members of a singleton object called `Predef`
+into every source file (hint: when you call `println`, you actually invoke
+`println` on `Predef` and `Predef.println` invokes `Console.println`, which does
+the real work)
+- In Scala, public class names needn't match the file names like in Java,
+but it's a good practice to do it for non-scripts
+- A script ends in a result expression, whereas a non-script ends
+in a definition
+- Non scripts, such as the `Foo` we wrote, need to be compiled instead of ran
+through `scala`, and only then the resulting class files can be ran:
+
+```bash
+$ scalac ChecksumAccumulator.scala Foo.scala
+```
+
+A better solution though is to use `fsc`, standing for **f**ast **S**cala
+**c**ompiler: it creates a local server daemon and sends the list of files to
+compile to it.  The next time `fsc` is ran, the daemon will already be running
+and `fsc` will simply send the file list, which immediately compiles the
+files, hence you need to wait for the Java runtime to startup only the first
+time.
+
+```bash
+$ fsc ChecksumAccumulator.scala Foo.scala
+```
+
+You can now run the Java class files which can be done with `scala`:
+
+```bash
+$ scala Foo bar baz
+```
+
+Note that instead of giving it a file with `.scala` extension, you just supply
+the name of the standalone object containing the `main` method with the proper
+signature.
+
+## Another way to create an application: the Application trait
+
+Scala offers a trait called `Application`, which can make our lives a bit
+easier:
+
+```scala
+import ChecksumAccumulator.calculate
+
+object Foo extends Application {
+  for (thing <- List("foo", "bar", "baz"))
+    println(thing + ": " + calculate(thing))
+}
+```
+- Note that instead of writing a `main` method, you place the code you
+would've put in the `main` method directly in the singleton object
+- The `Application` trait itself declares a `main` method, which the singleton
+object inherits
+- The code between the curly braces is collected into a *primary constructor* of
+the singleton object, and is executed as soon as the class is initialized
+
+Note that inheriting from `Application` is shorter, but has some downsides:
+- Can't be used if you need to access command line args
+- You need an explicit main method if your program is multithreaded (because of
+JVM restrictions)
+- Some implementations of the JVM do not optimize the initialization code of an
+object executed by the `Application` trait
+
+In conclusion, use `Application` only when your program is simple enough and
+single-threaded.
+
