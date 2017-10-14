@@ -134,6 +134,44 @@ updateRecordByName('age, 15)
 ```
 - Symbols are interned
 
+## String interpolation
+
+- Scala includes a familiar technique for embedding expressions within string
+literals called *string interpolation*
+- It provides concise and readable alternative to string concatenation
+
+```scala
+val name = "reader"
+println(s"Hello, $name!")
+```
+
+- The expression `s"Hello, $name!` is called a processed string literal, because
+the letter `s` precedes the open quote, Scala will use the `s` string
+interpolator to process the literal, which will evaluate each embedded
+expression, invoke `toString` on each result, and replace the embedded
+expression in the literal with those results.
+- If the expression includes any non-identifier characters, you must place it in
+curly braces
+
+```scala
+println(s"The answer is ${6 * 7}.")
+```
+
+- The two other string interpolators are `raw` and `f`
+- `raw` does not recognise character literal escape sequences, e.g.
+
+```scala
+println(raw"No\\\\escape!") // prints No\\\\escape!
+```
+- `f` allows printf-style formatting, e.g.
+
+```scala
+println(f"${math.Pi}%.5f") // prints 3.14159
+```
+
+- String interpolation is implemented by rewriting code at compile time
+- Users can define other string interpolators for other purposes
+
 ## Operators are methods
 
 - As mentioned earlier, Scala's operators are actually nice syntax for
@@ -147,7 +185,7 @@ val sum = 1 + 2 // Scala invokes (1).+(2)
 parameter types
 
 ```scala
-val longSom = 1 + 2L // Scala invokes (1).+(2L)
+val longSum = 1 + 2L // Scala invokes (1).+(2L)
 ```
 
 - Of course, it's worth to note that operator notation is not limited to
@@ -199,7 +237,18 @@ is actually `(2.0).unary_-`
 - Only `+`, `-`, `!` and `~` are allowed as prefix operators
 
 ## Arithmetic operations
+
 - Scala supports the typical arithmetic methods: addition (`+`), substraction
 (`-`), multiplication (`*`), division (`/`) and remainder (`%`)
 
 ## Relational and logical operations
+
+- You can compare numeric types with the relational methods greater than (`>`),
+less than (`<`), greater than or equal to (`>=`), and less than or equal to
+(`<=>`), which have a `Boolean` result type. The unary `!` operator (or as
+mentioned, the `unary_!` method) for negating a boolean expression
+- Logical methods, logical-and (`&&`) and logical or (`||` and `|`) take boolean
+operands in infix notation and have a `Boolean` result type
+- The `&&` and `||` operations short-circuit as in other languages (or,
+logically, just as in discrete mathematics)
+- If you want to evaluate the right hand side no matter what, use `&` and `|`
