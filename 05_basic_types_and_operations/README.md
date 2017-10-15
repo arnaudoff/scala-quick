@@ -252,3 +252,39 @@ operands in infix notation and have a `Boolean` result type
 - The `&&` and `||` operations short-circuit as in other languages (or,
 logically, just as in discrete mathematics)
 - If you want to evaluate the right hand side no matter what, use `&` and `|`
+
+## Bitwise operations
+
+- Scala allows you to perform operations on individual bits, just like most
+languages
+- The bitwise methods are: bitwise-and (`&`), bitwise-or (`|`),
+bitwise-xor (`^`), complement (`~`, or `unary_~`)
+- Scala integer types also offer three shift methods: shift left (`<<`), shift
+right (`>>`) and unsigned shift right (`>>>`)
+
+## Object equality
+
+- If you want to compare two objects for equality, you can use either `==` or
+`!=`, e.g.
+- You can also compare two objects that have different types
+
+```scala
+List(1, 2, 3) == "hello" // returns false
+```
+
+- You can compare with `null` as well
+
+```scala
+List(1, 2, 3) == null
+
+null == List(1, 2, 3)
+```
+
+Note:
+- `==` has been implemented so that you get the comparison you want in
+most cases. The rule is: first check the left side for `null`, if it's not `null`,
+call the `equals` method
+- Since there's an automatic `null` check, you don't have to do it yourself
+- Scala provides means for reference equality under the name `eq`, however `eq`
+and `ne` (its opposite) only apply to objects that directly map to Java objects
+
