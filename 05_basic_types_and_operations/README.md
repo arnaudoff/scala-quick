@@ -1,5 +1,6 @@
 # Basic types and operations
 
+
 In this lecture we'll be focusing on Scala's fundamental types and operations.
 Although they are similar to Java's, there's some interesting differences so the
 below material is worth looking at. We'll also look at implicit conversion, a
@@ -134,8 +135,7 @@ updateRecordByName('age, 15)
 ```
 - Symbols are interned
 
-## String interpolation
-
+## String interpolation 
 - Scala includes a familiar technique for embedding expressions within string
 literals called *string interpolation*
 - It provides concise and readable alternative to string concatenation
@@ -264,6 +264,7 @@ right (`>>`) and unsigned shift right (`>>>`)
 
 ## Object equality
 
+
 - If you want to compare two objects for equality, you can use either `==` or
 `!=`, e.g.
 - You can also compare two objects that have different types
@@ -288,3 +289,81 @@ call the `equals` method
 - Scala provides means for reference equality under the name `eq`, however `eq`
 and `ne` (its opposite) only apply to objects that directly map to Java objects
 
+## Operator precedence and associativity
+
+### Precedence
+
+- Given that Scala doesn't have operators, just a way to use methods in operator
+notation, a logical question is how operator precedence works
+- Scala decides precedence based on **the first character** of the methods used in
+operator notation, e.g. `*` has a higher precedence than `+`.
+
+```scala
+a +++ b *** c // evaluated as a +++ (b *** c)
+```
+
+The precedence table for the common methods (operators) looks like this (in
+decreasing order):
+
+- all other special characters
+- `*` `/` `%`
+- `+` `-`
+- `:`
+- `=` `!`
+- `<` `>`
+- `&`
+- `^`
+- `|`
+- (all letters)
+- (all assignment operators)
+
+- The "first character" rule has only one exception: assignment operators, which
+end in an equals character
+- If an operator ends in an equals character, and is not one of the comparison
+operators, then its precedence is the same as that of simple assignment, hence
+it's lower than the precedence of any other operator
+
+```scala
+x *= y + 1 // is the same as x *= (y + 1)
+```
+
+- In the above example, `*=` is an assignment operator with lower
+precedence than `+`, even though the operator's first character is `*`
+
+Note: It's always good style to use parens to clarify what's happening, the code
+becomes clearer as knowledge of the above precedence table is not required.
+
+### Associativity
+
+- When multiple operators of the same precedence appear side by side in an
+expression, their *associativity* determines the way they are grouped
+- The associativity, unlike precedence, is determined **by the last character**
+- As mentioned before, any method that ends in `:` is invoked on its right
+operand
+- Methods than end in any other character are the other way around
+
+```scala
+a * b // a.*(b)
+a ::: b // b.:::(a)
+```
+
+- No matter what associativity an operator has, its operands are always
+evaluated left to right
+- As noted, when multiple operators are side by side and their precedence is
+equal, the associativity kicks in: if the method ends in `:` they are
+grouped right to left, otherwise left to right
+
+```scala
+a ::: b ::: c // a ::: (b ::: c)
+a * b * c // (a * b) * c
+```
+
+## Rich wrappers
+
+- Scala's basic types support loads of methods
+- This is achieved via *implicit conversions*, a very powerful Scala-specific
+feature
+- For each basic type we described, there's a rich wrapper that provides
+several additional methods: e.g. `Int` -> `scala.runtime.RichInt`, `String` ->
+`scala.collection.immutable.StringOps`, `Double` -> `scala.runtime.RichDouble`
+and so on
