@@ -356,3 +356,79 @@ example
 - It's vital to note that in Scala the convention differs from Java and
 constants are not named all upper case (`MAX_VALUE`), but only that the
 first letter should be upper case (`Pi`, `XOffset`)
+
+### Operator identifiers
+
+- An operator identifier consists of one or more operator chracters (printable
+    ASCII characters such as `+`, `:`, `?`, `~`, `#`)
+- Some more examples are `+`, `++`, `:::`, `<?>`, `:->`
+
+### A literal identifier
+
+- A *literal identifier* is an arbitrary string enclosed in back ticks
+- The idea is that you can use any string accepted by the runtime as an
+identifier
+- This works with reserved keywords as well
+- Typical use case: accessing the static `yield` method in Java's `Thread`
+class, `Thread.yield()` cannot be used because `yield` is reserved in `Scala`,
+but the method can be invoked with the literal identifier syntax
+
+## Method overloading
+
+- One thing still missing from `Rational` is mixed arithmetic, for instance
+multiplying a `Rational` by an integer
+- Currently the operands always have to be `Rational`s, e.g. instead of `r * 2`,
+one should bother doing `r * new Rational(2)`
+- Mixed addition and multiplication can be achieved by *overloading* these methods
+- For instance, `+` is used by one method that takes an `Int` and one that takes
+a `Rational`, the compiler chooses which one to resolve to depending on the
+argument passed
+
+```scala
+class Rational(p: Int, q: Int) {
+
+  require(q != 0)
+
+  private val g = gcd(p.abs, q.abs)
+
+  val numerator = p / g
+  val denominator = q / g
+
+  def this(p: Int) = this(p, 1)
+
+  def + (that: Rational): Rational =
+    new Rational(
+        numerator + that.denominator + that.numerator * denominator,
+        denominator * that.denominator
+    )
+
+  def + (i: Int): Rational =
+    new Rational(numerator + i * denominator, denominator)
+
+  def - (that: Rational): Rational =
+    new Rational(
+      numerator * that.denominator - that.numerator * denominator,
+      denominator * that.denominator
+    )
+
+  def - (i: Int): Rational =
+    new Rational(numerator - i * denominator, denominator)
+
+  def * (that: Rational): Rational =
+    new Rational(numerator * that.numerator, denominator * that.denominator)
+
+  def * (i: Int): Rational =
+    new Rational(numerator * i, denominator)
+
+  def / (that: Rational): Rational =
+    new Rational(numerator * that.denominator, denominator * that.numerator)
+
+  def / (i: Int): Rational =
+    new Rational(numerator, denominator * i)
+
+  override def toString = numerator + "/" + denominator
+
+  private def gcd(a: Int, b: Int): Int =
+    if (b == 0) a else gcd(b, a % b)
+}
+```
