@@ -1,5 +1,6 @@
 # Functional objects
 
+
 In this lecture, we will be designing a class in functional style which
 models rational numbers. We'll also show more features related to OOP in Scala
 such as class parameters, constructors, methods and operators, overriding,
@@ -179,3 +180,113 @@ val foo = new Rational(3/4)
 foo.numerator
 foo.denominator
 ```
+
+## Self references
+
+- Like in other languages, `this` refers to the object instance on which the
+currently executing method was invoked, or if within a constructor, the
+object instance being constructed
+
+Example (a method that checks whether the given rational number is smaller than
+a parameter):
+
+```scala
+def lessThan(that: Rational) =
+  this.numerator * that.denominator < that.numerator * this.denominator
+```
+
+- You can omit `this` similarly to other languages, the two notations are
+equivalent
+
+A more practical example of why `this` exists as it is this situation:
+
+```scala
+def max(that: Rational) =
+  if (this.lessThan(that)) that else this
+```
+
+- Although the first `this` is redundant, the second `this` represents the
+result of the method, hence omitting in would result in a method that has
+nothing to return
+
+## Auxiliary constructor
+
+- Often times you need more than just the primary constructor
+- These additional constructors are called *auxiliary constructors*
+- Using our case study, a rational number with denominator of `1` needn't
+require explicit specification, e.g instead of `new Rational(5, 1)` the
+client could do `new Rational(5)` with the same success
+- Typically, the body of the auxiliary constructor invokes the primary
+    constructor, passing along some "predefined" argument (like `1`)
+
+```scala
+class Rational(p: Int, q: Int) {
+
+  require(q != 0)
+
+  val numerator: Int = p
+  val denominator: Int = q
+
+  def this(p: Int) = this(p, 1) // auxiliary constructor
+
+  override def toString = numerator + "/" + denominator
+
+  def add(that: Rational): Rational =
+    new Rational(
+      numerator * that.denominator + that.numerator * denominator,
+      denominator * that.denominator
+    )
+}
+```
+
+- Every auxiliary constructor **must** invoke another constructor of the same
+class as its first action
+- Following the above rule, every constructor invocation in Scala will end up
+eventually calling the primary constructor
+- Note that only the primary constructor can invoke a superclass constructor
+
+## Private fields and methods
+
+- As you probably noticed, Rational currently doesn't support normalization of
+the fractions, e.g. `66/42` could be normalized to `11/7` by doing a division by
+the GCD of the numerator and denominator
+
+Example implementation:
+
+```scala
+class Rational(p: Int, q: Int) {
+  require (q != 0)
+
+  private val g = gcd(p.abs, q.abs)
+
+  val numerator = p / g
+  val denominator = q / g
+
+  def this(p: Int) = this(p, 1)
+
+  def add(that: Rational): Rational =
+    new Rational(
+      numerator * that.denominator + that.numerator * denominator,
+      denominator * that.denominator
+    )
+
+  override def toString = numerator + "/" + denominator
+
+  private def gcd(a: Int, b: Int): Int =
+    if (b == 0) a else gcd(b, a % b)
+}
+```
+
+- Note that `g` is a private field which calls `gcd`, a classical recursive
+implementation of Euclid's algorithm for finding the GCD of two numbers
+- `g` cannot be accessed outside the body of the class
+- Invoking the `abs` method on `p` and `q` ensures `g` is always positive
+(`abs` is defined on any `Int`)
+
+Now,
+
+```scala
+new Rational(66/42)
+```
+
+yields `Rational = 11/7`.
