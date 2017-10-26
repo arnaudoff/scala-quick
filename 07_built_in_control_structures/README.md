@@ -45,10 +45,11 @@ println(if (!args.isEmpty) args(0) else "default.txt")
 - In general, using `val`s helps you safely make similar kind
 of "refactorings" as your code evolves over time
 
+
 ## `while` loops
 
 - The `while` loop works just like in other languages, e.g. gcd written
-    iteratively would look like that:
+    iteratively would look like this:
 
 ```scala
 def gcdLoop(x: Long, y: Long): Long = {
@@ -88,8 +89,9 @@ def greet() = { println("yo") } // no equals sign => result type is Unit
 
 - In general, `while` loops, just like `var`s, should be avoided
 - In fact, often `while` loops and `var`s go together, because `while` loops
-don't result in a value, to maky any kind of difference, a `while` loop
+don't result in a value, to make any kind of difference, a `while` loop
 typically updates `var`s or performs I/O
+
 
 ## `for` expressions
 
@@ -115,7 +117,7 @@ Few things to note:
 - The `file <- filesHere` syntax is called a *generator*
 - In each iteration, a new `val` named `file` is initialized with an
 element value
-- The compiler inferts the type of `file` to be `File`,
+- The compiler infers the type of `file` to be `File`,
 because `filesHere` is an `Array[File]`
 
 - `for` works for any kind of collection, e.g. a `Range` type (generated
@@ -127,6 +129,7 @@ for (i <- 1 to 4)
 ```
 
 - Protip: Use `until` instead of `to` to avoid the upper bound of the range
+
 
 ### Filtering
 
@@ -186,4 +189,69 @@ def grep(pattern: String) =
     if line.trim.matches(pattern)
   ) println(file + ": " + line.trim)
 ```
+
+### Mid-stream variable bindings
+
+- In the previous example, `line.trim` is repeated
+- `line.trim` is a non-trivial computation, hence it's a good idea to be
+computed only once
+- The result can be bound to a new variable using the equals sign; the
+bound variable is introduced and used just like a `val`, only with the
+`val` keyword left out
+
+```scala
+def grep(pattern: String) =
+  for {
+    file <- filesHere
+    if file.getName.endsWith(".scala")
+    line <- fileLines(file)
+    trimmed = line.trim
+    if trimmed.matches(pattern)
+  } println(file + ":" + trimmed)
+```
+
+- Here, that variable is initialized to the result of `line.trim`, and
+the rest of the `for` expressions then uses it in two places, once in
+the `if` and once in `println`
+
+### Producing a new collection
+
+- So far, we've operated on the iterated values and then ignored them
+- You can also generate a value to remember for each iteration
+- The syntax is: `for <clauses> yield <body>`
+
+Example (a function that identifies the `.scala` files and stores them in an
+array):
+
+```scala
+def scalaFiles =
+  for {
+    file <- filesHere
+    if file.getName.endsWith(".scala")
+  } yield file
+```
+
+**Important**: The `yield` should be placed **before the entire body**,
+even if the body is a block surrounded by curly braces, e.g. avoid this:
+
+```scala
+for (file <- filesHere if file.getName.endsWith(".scala")) {
+  yield file // syntax error
+}
+```
+
+To show yield once more, let's find how long are the lines that
+contain "for" in all `.scala` files:
+
+```scala
+val forLineLengths =
+  for {
+    file <- filesHere
+    if file.getName.endsWith(".scala")
+    line <- fileLines(file)
+    trimmed = line.trim
+    if trimmed.matches(".*for.*")
+  } yield trimmed.length
+```
+
 
