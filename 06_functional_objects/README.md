@@ -432,3 +432,25 @@ class Rational(p: Int, q: Int) {
     if (b == 0) a else gcd(b, a % b)
 }
 ```
+
+## Implicit conversions
+
+- Now that you can multiply numbers, you might also want to do
+`2 * r`, but this doesn't work
+- The problem here is that `2 * r` is equivalent to `2.*(r)`, so
+it's a method call on the number `2`, which is an integer
+- The `Int` class, however, contains no multipication method that takes a
+`Rational` argument
+- This issue is solved by *implicit conversions*: you can create an implicit
+conversion that automatically converts integers to rational numbers when
+needed
+
+```scala
+implicit def intToRational(x: Int) = new Rational(x)
+```
+
+- As it seems, implicit conversions are a very powerful technique
+- However, implicit conversions can also be easiliy misused
+- Because they are applied implicitly by the compiler, it can be
+non-obvious to client programmers what implicit conversions are being applied
+
