@@ -254,4 +254,128 @@ val forLineLengths =
   } yield trimmed.length
 ```
 
+## Exception handling with `try` expressions
 
+- Scala's exceptions behave similarly to other languages
+- Instead of returning a value in the normal way, a method can terminate by
+throwing an exception
+- The method's caller can either catch and handle the exception, or simply
+terminate, in which case the exception is propagated to the caller's,
+caller
+- The exception propagates by induction for the (n - 1)th method,
+unwinding the call stack until a method handles it or there are no more
+methods
+
+### Throwing exceptions
+
+- To throw an exception, you create an exception object and then `throw` it
+
+```scala
+throw new IllegalArgumentException
+```
+
+- `throw` is also an expression that has a result type
+- The type of an exception throw is `Nothing`
+- `throw` can be used as an expression, although it will never evaluate to
+anything, it is frequently useful: one branch of an `if` computes a value,
+while the other throws an exception and "computes" `Nothing`
+
+Example:
+
+```scala
+val half =
+  if (n % 2 == 0)
+    n / 2
+  else
+    throw new RuntimeException("n must be even")
+```
+
+If `n` is even, `half` is initialized to the half of it, otherwise an
+exception will be thrown before `half` can be initialized at all.
+
+### Catching exceptions
+
+- The syntax for `catch` was chosen for its consistency with
+*pattern matching*, a powerful feature which we will discuss later
+- The behavior of the `try-catch` expression is the same as in other
+languages with exceptions
+
+```scala
+import java.io.FileReader
+import java.io.FileNotFoundException
+import java.io.IOException
+
+try {
+  val f = new FileReader("input.txt")
+  // use and close
+} catch {
+  case ex: FileNotFoundException => // missing file
+  case ex: IOException => // I/O error
+}
+```
+
+### The `finally` clause
+
+- Similarly to other languages, you can wrap an expression with a `finally`
+clause if you want a piece of code to execute no matter how the expression
+terminates, e.g. ensure that an open file gets closed always
+
+```scala
+import java.io.FileReader
+
+val file = new FileReader("input.txt")
+try {
+  // use the file
+} finally {
+  file.close() // ensure the file is closed
+}
+```
+
+### Yielding a value
+
+- Similarly to other Scala control structures, `try-catch-finally` results
+in a value
+
+Example (parse a URL and use a default if the original is badly formed):
+
+```scala
+import java.net.URL
+import java.net.MalformedURLException
+
+def urlFor(path: String) =
+  try {
+    new URL(path)
+  } catch {
+    case e: MalformedURLException =>
+      new URL("http://www.scala-lang.org")
+  }
+```
+
+- The resulting value is that of the `try` clause in case of no exception
+thrown, or the relevant `catch` clause if an exception is thrown and caught
+- If an exception was thrown, but not caught, the expression would have no
+result at all: the value computed in the `finally` clause, if there was
+one, would be dropped (in general, `finally` clauses do some kind of clean
+up and should not change the value computed in the main body/`catch`
+clause of the `try`)
+
+**Note**: Scala's behavior differs from Java because
+Java's `try-finally` does not result in a value. For example, as in Java,
+if a `finally` clause includes an explicit `return` or throws, that return
+value or exception overrules any previous one that originated in the try
+block or in the catch clauses. This "surprising" behavior is illustrated
+by the following examples:
+
+```scala
+def f(): Int = try return 1 finally return 2 // f() results in 2
+```
+
+By contrast, this also happens:
+
+```scala
+def g(): Int = try 1 finally 2 // g() results in 1
+```
+
+In general, it's best to avoid returning values from `finally` clauses
+and stick to thinking of them as a way to ensure some side effect happens,
+be it closing an open file or something else.
