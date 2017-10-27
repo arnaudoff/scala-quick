@@ -113,7 +113,6 @@ for (file <- filesHere)
   println(file)
 ```
 
-Few things to note:
 - The `file <- filesHere` syntax is called a *generator*
 - In each iteration, a new `val` named `file` is initialized with an
 element value
@@ -129,6 +128,7 @@ for (i <- 1 to 4)
 ```
 
 - Protip: Use `until` instead of `to` to avoid the upper bound of the range
+
 
 
 ### Filtering
@@ -169,6 +169,7 @@ for (
   if file.getName.endsWith(".scala")
 ) println(file)
 ```
+
 
 ### Nested iterations
 
@@ -253,6 +254,7 @@ val forLineLengths =
     if trimmed.matches(".*for.*")
   } yield trimmed.length
 ```
+
 
 ## Exception handling with `try` expressions
 
@@ -379,3 +381,192 @@ def g(): Int = try 1 finally 2 // g() results in 1
 In general, it's best to avoid returning values from `finally` clauses
 and stick to thinking of them as a way to ensure some side effect happens,
 be it closing an open file or something else.
+
+## Match expressions
+
+- `match` is equivalent to a `switch` statement in other languages, but it
+allows you to select using some patterns (which is more powerful,
+but described later)
+- The default case is specified with an underscore, typically a
+wildcard symbol frequently used in Scala as a placeholder for unknown value
+
+Example (consider a daily routine):
+
+```scala
+val firstArg = if (args.length > 0) args(0) else ""
+
+firstArg match {
+  case "friday" => println("drinking")
+  case "saturday" => println("coding")
+  case "sunday" => println("doing homework")
+  case _ => println("doing maths")
+}
+```
+
+- Unlike in Java, where you can use integers, enums and string
+constants in the case, here any kind of constant (as well as other things)
+will do
+- Note that in Scala, no `break`s are needed, the `break` is implicit
+- Most importanly, `match` results in a value, e.g. in the above example
+it would work just as well to yield the value rather than printing it:
+
+```scala
+val firstArg = if(!args.isEmpty) args(0) else ""
+
+val activity =
+  firstArg match {
+    case "friday" => "drinking"
+    case "saturday" => "coding"
+    case "sunday" => "doing homework"
+    case _ => "doing maths"
+}
+
+println(activity)
+```
+
+## A note about `break` and `continue`
+
+- As you may have noticed, Scala leaves out `break` and `continue` as
+they don't really mix well with the concepts of functional programming,
+especially function literals
+
+A good example of how life can still be meaningful without these two is the
+following (suppose you're searching the argument list for a string
+ending with `.scala`, but does not start with a hyphen):
+
+```java
+int i = 0;
+boolean foundIt = false;
+while (i < args.length) {
+  if (args[i].startsWith("-")) {
+    i = i + 1;
+    continue;
+  }
+
+  if (args[i].endsWith(".scala")) {
+    foundIt = true;
+    break;
+  }
+
+  i = i + 1
+}
+```
+
+In Scala, you could translate this code by replacing every continue by an
+if and every break by a boolean variable, where it indicates whether the
+enclosing loop should continue:
+
+```scala
+var i = 0
+var foundIt = false
+
+while (i < args.length && !foundIt) {
+  if (!args(i).startsWith("-")) {
+    if (args(i).endsWith(".scala"))
+      foundIt = true
+  }
+
+  i = i + 1
+}
+```
+
+Or, if you're a real man (you do functional programming), you'll write it
+recursively:
+
+```scala
+def searchFrom(i: Int): Int =
+  if (i >= args.length) -1
+  else if (args(i).startsWith("-")) searchFrom(i + 1)
+  else if (args(i).endsWith(".scala")) i
+  else searchFrom(i + 1)
+
+val i = searchFrom(0)
+```
+
+Here's an interesting note to make: the compiler will actually optimize the
+recursion, because all of the recursive calls are in tail-call position,
+it will generate code similar to a while loop, e.g. each recursive
+call will be implemented as a jump back to the beginning of the function.
+
+- After all, if you want to use a `break`, check out
+`scala.util.control.Breaks`.
+
+## Variable scope
+
+- Scala's scoping rules are almost identical to Java's and most programming
+languages
+
+A notable difference is the following:
+
+```scala
+val a = 1; // btw, Scala will not place a ; here implicitly
+{
+  val a = 2 // compiles fine
+  println(a)
+}
+println(a)
+```
+
+Java will not allow you to create a variable in an inner scope with the same
+name as the variable in the outer scope, however, in a Scala program the
+inner variable *shadows* a like-named outer variable, because the outer
+variable becomes invisible in the inner scope.
+
+- In general, prefer to choose a new, meaningful variable name rather
+than shadowing an outer variable
+
+## Refactoring imperative-style code
+
+In this lecture, we will again look at a imperative to functional conversion
+just so you can get a feel for the functional style faster.
+
+Example (printing a multiplication table):
+
+```scala
+def printMultiTable() = {
+  var i = 1
+  while (i <= 10) {
+    var j = 1
+    while (j <= 10) {
+      val prod = (i * j).toString
+      var k = prod.length
+      while (k < 4) {
+        print(" ")
+        k += 1
+      }
+
+      print(prod)
+      j += 1
+    }
+
+    println()
+    i += 1
+  }
+}
+```
+
+becomes
+
+```scala
+// Returns row as a sequenceco
+def makeRowSeq(row: Int) =
+  for (col <- 1 to 10) yield {
+    val prod = (row * col).toString
+    val padding = " " * (4 - prod.length)
+    padding + prod
+  }
+
+// Returns a row as a string
+def makeRow(row: Int) = makeRowSeq(row).mkString
+
+// Returns table as a string
+def multiTable() = {
+  val tableSeq =
+    for (row <- 1 to 10)
+      yield makeRow(row)
+  tableSeq.mkString("\n")
+}
+```
+
+The result is obvious: the multiplication table in the form of a matrix.
+
