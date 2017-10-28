@@ -190,4 +190,89 @@ time the function is invoked, e.g. if `numbers` is `List(1, 2, 3, 4, 5)`,
 `filter` will replace `_ > 3` first with 1 (1 > 3), then 2 (2 > 3) etc.
 - Thus, the literal `_ > 3` is equivalent to the verbose `x => x > 3`
 
+## Partially applied functions
 
+- The previous examples simply substitute underscores for individual
+parameters, however, you can replace an entire parameter list with
+an underscore
+- For instance, instead of `println(_)`, you could write `println _`
+
+```scala
+numbers.foreach(println _) // equivalent to numbers.foreach(x => println(x))
+```
+
+- In this case, the underscore is not a placeholder for a single
+parameter, but for an entire parameter list!
+- Psst, note that you need the space between `println` and `_`, otherwise
+the compiler would think you're referring to `println_`, which doesn't exist
+- When you use an underscore in this way, you're writing
+a *partially applied function*
+- Typically, when you invoke a function, passing in arguments, you
+**apply the function to the arguments**:
+
+```scala
+def sum(a: Int, b: Int, c: Int) = a + b + c
+
+sum(1, 2, 3) // applies sum to the arguments 1, 2 and 3
+```
+
+- Thus, a *partially applied function* is an expression in which you don't
+supply all of the arguments needed by the function; you supply some
+or even none of the needed args:
+
+```scala
+// create a PAF involving sum, supplying none of the required arguments
+val a = sum _
+```
+
+- All this does is instantiate a function value that takes the three integer
+parameters missing from the PAF expression, `sum _`, and assign a
+reference to that new function value to the variable `a`
+- When you apply three arguments to this new function value, it will
+turn around and invoke `sum`, passing in those same three arguments:
+
+```scala
+a(1, 2, 3) // returns 6
+```
+
+Here's the explanation (make sure to understand how this works): the
+variable `a` refers to a function value; it's an instance of a class
+generated automatically from `sum _`, the PAF expression. The class has
+an `apply` method that takes three arguments (because three arguments
+are missing from `sum _`). The compiler translates `a(1, 2, 3)` into an
+invocation of the function value's apply method, thus `a(1, 2,3)` is a
+shorthand for `a.apply(1, 2, 3)`. The `apply` method simply forwards
+those three missing parameters to `sum`, and returns the result.
+
+This technique is often times used when you want to assign a method
+or nested function to a variable, or pass it as an argument to another
+function; you can do these things if you wrap the method/nested
+function in a function value.
+
+- Also, PAFs can have some argument supplied (after all, that's why they're
+called partial):
+
+```scala
+val b = sum(1, _: Int, 3)
+```
+
+- The compiler now generates a class whose `apply` method takes only one
+argument, when invoked with it, this generated `apply` invokes `sum`,
+passing in `1`, the passed argument, and `3`:
+
+```scala
+b(2) // b.apply invokes sum(1, 2, 3)
+```
+
+Also, it's worth noting that when a function is expected and you write a PAF
+with all arguments missing, the underscore can be omitted, e.g.
+
+```scala
+numbers.foreach(println _)
+```
+
+becomes
+
+```scala
+numbers.foreach(println)
+```
