@@ -276,3 +276,37 @@ becomes
 ```scala
 numbers.foreach(println)
 ```
+
+## Closures
+
+- In function literals, you can not only refer to the passed parameters,
+but to variables defined outside:
+
+```scala
+(x: Int) => x + foo // foo is defined outside the function body
+```
+
+- In this case, `foo` is called a *free variable*, because the function
+literal does not itself introduce it
+- The `x` variable, by contrast, is a *bound variable*
+
+```scala
+var foo = 1
+val addFoo = (x: Int) => x + foo
+addFoo(10) // 11
+```
+
+- The function value that's created from this function literal is called a
+*closure*, because in a sense it's "closing" the function literal by
+capturing the bindings of its free variables
+- A function literal with no free variables, e.g. `(x: Int) => x + 1`, is
+called a closed term (a function value created at runtime for this
+literal is not a closure, strictly speaking)
+- A function literal with free variables, such as `(x: Int) => x + foo`
+is an open term, and by definition the resulting function value would be a
+closure
+
+Note: if `foo` changes after the closure is created, the closure "sees" the
+change, e.g. `foo = 9999` and `addFoo(10)` results in `10009`! The
+reverse is also valid: changes made by a closure to a captured variable
+are visible outside the closure.
