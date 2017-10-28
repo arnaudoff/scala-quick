@@ -150,3 +150,44 @@ numbers.filter((x: Int) => x > 3) // returns List(4, 5, 6)
 
 If curious, the foreach method is defined in trait `Traversable`, a common
 supertrait of `List`, `Set`, `Array` and `Map`.
+
+## Short form of function literals
+
+- One way to make a function literal shorter is to leave off the parameter
+types, thus the previous example can be shortened to:
+
+```scala
+numbers.filter((x) => x > 3)
+```
+
+- The Scala compiler infers `x`'s type, because it knows you're filtering
+a list of integers
+- This is called *target typing*, because the targeted usage of an
+expression (the argument to the `filter()` call) is allowed to influence
+the typing of that expression (the type of `x`)
+- A good strategy when using literals is to simply omit the type,
+and add it if the compiler is confused :)
+- We can go futher with the shortening - we can leave out the parentheses
+around a parameter whose type is inferred:
+
+```scala
+numbers.filter(x => x > 3)
+```
+
+## Placeholder syntax
+
+- Scala goes even further: since this construct is pretty common, you can
+use underscores as placeholders for one or more parameters as long as each
+parameter appears only once within the function literal:
+
+```scala
+numbers.filter(_ > 3)
+```
+
+- The underscore can be thought of as a blank value in the expression that
+needs to be "filled in", which will be filled in with an argument each
+time the function is invoked, e.g. if `numbers` is `List(1, 2, 3, 4, 5)`,
+`filter` will replace `_ > 3` first with 1 (1 > 3), then 2 (2 > 3) etc.
+- Thus, the literal `_ > 3` is equivalent to the verbose `x => x > 3`
+
+
