@@ -114,3 +114,86 @@ val element: Element = new ArrayElement(Array("hello"))
 - By the way, as you probably noticed, the relationship between `ArrayElement` and
 `Array[String]` is a composition
 
+## Overriding methods and fields
+
+- Since fields and methods belong to the same namespace, it's possible for a
+field to override a parameterless method, e.g change the implementation of
+contents from a method to a field without having to modify the abstract method
+definition
+
+```scala
+class ArrayElement(conts: Array[String]) extends Element {
+  val contents: Array[String] = conts
+}
+```
+
+- So, the field `contents` is a perfectly valid implementation of the
+parameterless method `contents` in class `Element`
+
+## Parametric fields
+
+- Consider the definition of `ArrayElement`. There's an obvious code smell: it
+has the parameter `conts`, whose whole purpose is to be copied into the
+`contents` field. This is annoying in itself.
+- Scala solves this problem by parametric fields
+
+```scala
+class ArrayElement(val contents: Array[String]) extends Element
+```
+
+- Note that the `contents` parameter is prefixed by a `val`
+- This prefix is a shorthand that defines a field and a parameter with the same
+name
+- The field is obviously unreassignable
+
+Put simply,
+
+```scala
+class ArrayElement(val contents: Array[String]) extends Element
+```
+
+is the equivalent of
+
+```scala
+class ArrayElement(foobar: Array[String]) extends Element {
+  val contents: Array[String] = foobar
+}
+```
+
+- If you want the field to be reassignable, just prefix the parameter with `var`
+instead of `val`
+- You can also prefix with modifiers such as `private`, `protected` etc
+
+For example,
+
+```scala
+class Cat {
+  val dangerous = false
+}
+
+class Tiger(override val dangerous: Boolean, private var age: Int) extends Cat
+```
+
+is equivalent to
+
+```scala
+class Tiger(someParam: Boolean, anotherParam: Int) extends Cat {
+  override val dangerous = someParam
+  private var age = anotherParam
+}
+```
+
+## Invoking superclass constructors
+
+Consider a `LineElement`, which is an abstraction for a layout element that
+consists of a single line given by a string:
+
+```scala
+class LineElement(s: String) extends ArrayElement(Array(s)) {
+  override def width = s.length
+  override def height = 1
+}
+```
+
+- Since `ArrayElement`'s constructor takes a parameter,
+`LineElement` simply passes this argument
