@@ -190,3 +190,34 @@ withPrintWriter(file) {
     writer => writer.println(new java.util.Date)
 }
 ```
+
+## By-name parameters
+
+- What if you want to implement something similar to `if`/`while`, where there's
+no value to pass into the code between the curly braces?
+- Scala solves this by *by-name parameters*
+
+Suppose you want to implement `customAssert`, which takes a function value
+as input and checks a flag to decide what to do, if the flag is set
+`customAssert` invokes the passed function, otherwise does nothing.
+
+```scala
+var assertionsEnabled = true
+
+def customAssert(predicate: () => Boolean) =
+  if (assertionsEnabled && !predicate())
+    throw new AssertionError
+```
+
+Sample usage is `customAssert(() => 35 > 33)`, but we would like to do better.
+That `()` part is little annoying. We'd want to do something like
+`customAssert(35 > 33)`
+
+- By-name parameters solve exactly this problem
+- To use by-name parameters, you have to change the definition of `customAssert`
+
+```scala
+def customAssert(predicate: => Boolean) = // ...
+```
+
+Now, `customAssert` can be called like `customAssert(35 > 33)`.
