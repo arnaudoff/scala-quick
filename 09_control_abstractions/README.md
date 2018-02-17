@@ -89,3 +89,104 @@ A lot more cleaner way to express the same thing is writing this:
 ```scala
 def containsNeg(nums: List[Int]) = nums.exists(element => element < 0)
 ```
+
+## Currying
+
+Let's define a function that sums two integers
+
+```scala
+def classicSum(x: Int, y: Int) = x + y
+```
+
+Now let's examine the same function, but using currying as a concept:
+
+```scala
+def curriedSum(x: Int)(y: Int) = x + y
+```
+
+Currying is essentially a syntax sugar for doing this:
+
+```scala
+def first(x: Int) = (y: Int) => x + y
+```
+
+```scala
+val second = first(1) // yields Int => Int = <function1>
+
+// now apply the result to 2
+
+second(2) // yields 3
+```
+
+So, in the sum example, when we invoke `curriedSum`, we'll actually have two
+traditional functional invocations, the first one takes a single `Int` as a
+parameter (`x`), and returns a function value for the second function, this
+second function takes the `Int` parameter `y`.
+
+## Building new control structures
+
+- In languages with first-class functions, one can effectively make new control
+structures by simply creating methods that take functions as arguments
+
+Let's define a control structure that repeats an operation two times and returns
+the result:
+
+```scala
+def twice(op: Double => Double, x: Double) = op(op(x))
+```
+
+From a practical point of view, you often see opening a resource, operating on
+it, and then closing it, so let's see how that would work using these new
+techniques:
+
+```scala
+def withPrintWriter(file: File, op: PrintWriter => Unit) = {
+  val writer = new PrintWriter(file)
+  try {
+    op(writer)
+  } finally {
+    writer.close()
+  }
+}
+```
+
+The usage is rather cool:
+
+```scala
+withPrintWriter(
+    new File("date.txt"),
+    writer => writer.println(new java.util.Date)
+)
+```
+
+- This is called loan pattern: a control-abstraction function opens a resource
+and "loans" it to a function
+- By the way, you can use curly braces in client code to make it look like more
+native, e.g. `println { "Hello world!" }` instead of `println("Hello, world!")`,
+of course this works when using one argument only
+
+Let's consider `withPrintWriter` again. It takes two arguments, so you can't use
+curly braces, but since the function you pass to it is the last argument, we can
+use currying to pull the first argument, into a separate argument list, which
+leaves the function as lone parameter of the second argument list, e.g:
+
+```scala
+def withPrintWriter(file: File)(op: PrintWriter => Unit) = {
+  val writer = new PrintWriter(file)
+  try {
+    op(writer)
+  } finally {
+    writer.close()
+  }
+}
+```
+
+Now, we can use the more pleasing syntax:
+
+```scala
+val file = new File("date.txt")
+
+withPrintWriter(file) {
+    writer => writer.println(new java.util.Date)
+}
+```
