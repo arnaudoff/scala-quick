@@ -197,3 +197,78 @@ class LineElement(s: String) extends ArrayElement(Array(s)) {
 
 - Since `ArrayElement`'s constructor takes a parameter,
 `LineElement` simply passes this argument
+
+## Polymorphism and dynamic binding
+
+- A quick OOP refresher: a polymorphic type is a type that can have many forms,
+e.g. `Element` can be `ArrayElement` or `LineElement`.
+
+Thus, the following expressions are valid:
+
+```scala
+val el: Element = new ArrayElement(Array("foo", "bar"))
+val arrayElement: ArrayElement = new LineElement("foobar")
+val secondElement: Element = arrayElement
+```
+
+- Method invocations on variables and expressions are dynamically bound
+- Thus, the actual method implementation invoked is determined at runtime
+based on the class of the object, not the type of the variable/expression
+
+This is easier to explain with an example. Consider
+
+```scala
+abstract class Element {
+  def foo() = {
+    println("Element's implementation is invoked")
+  }
+}
+
+class ArrayElement extends Element {
+  override def foo() = {
+    println("ArrayElement's implementation invoked")
+  }
+}
+
+class LineElement extends Element {
+  override def foo() = {
+    println("LineElement's implementation invoked")
+  }
+}
+```
+
+Now, if you define the following method:
+
+```scala
+def invokeFoo(e: Element) = {
+  e.foo()
+}
+```
+
+and pass an `ArrayElement` to it, `ArrayElement`'s implementation will be
+invoked, even though the type of `e` is `Element`.
+
+## Declaring final members
+
+- In order to prevent overriding, simply use the `final` modifier
+
+```scala
+class ArrayElement extends Element {
+  final override def foo() = {
+    println("ArrayElement's impl invoked")
+  }
+}
+```
+
+If you try to override it in `LineElement`, you'd get an error.
+
+Similarly, if you want to avoid a class to be subclassed further, it can be
+defined as `final`. For example:
+
+```scala
+final class ArrayElement extends Element {
+  override def foo() = {
+    println("ArrayElement's impl invoked")
+  }
+}
+```
