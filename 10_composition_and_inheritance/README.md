@@ -272,3 +272,65 @@ final class ArrayElement extends Element {
   }
 }
 ```
+
+## Using composition and inheritance
+
+- Composition and inheritance are two ways to define a new class in terms of an
+already existing one
+- If you strive for code reuse, you should in general prefer composition to
+inheritance
+- We can think of inheritance as "is-a" relationship, therefore we may as well
+notice that we need to change our definition of `LineElement` and make it a
+direct subclass of `Element`
+
+```scala
+class LineElement(s: String) extends Element {
+  val contents = Array(s)
+  override def width = s.length
+  override def height = 1
+}
+```
+
+- Now `ArrayElement` has a composition relationship with `Array`, instead of
+inheritance relationship with `ArrayElement`: it holds a reference to an array
+of strings
+
+## Implementing the combinators `above` and `beside` and `toString`
+
+- Putting one element above another we can interpret as concatentating the
+contents values of the elements, so our method could look something like
+that
+
+```scala
+def above(that: Element): Element =
+  new ArrayElement(this.contents ++ that.contents)
+```
+
+- Putting one element beside another can be interpreted as a new element in
+which every line is the concatenation of the corresponding lines of the two elements
+
+```scala
+def beside(that: Element): Element =
+  new ArrayElement(
+    for ((firstLine, secondLine) <- this.contents zip that.contents)
+  ) yield firstLine + secondLine
+```
+
+- `this.contents` and `that.contents` arrays are transformed into an array of
+pairs using the `zip` operator, which picks corresponding elements in its two
+operands and forms an array of pairs
+
+Example:
+
+```scala
+Array(1, 2, 3) zip Array("z", "t") // Array((1, "z"), (2, "t"))
+```
+
+We will also need a `toString` method for `Element`, which has a
+simple implementation:
+
+```scala
+override def toString = contents mkString "\n"
+```
+
+Overall, this is how the `Element` class looks now:
