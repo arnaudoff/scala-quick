@@ -357,7 +357,7 @@ abstract class Element {
 
 ## Defining a factory object
 
-- We can hide the already developer hierarchy behind a factory object
+- We can hide the already developed hierarchy behind a factory object
 - As a reminder, a factory object contains methods that construct
 other objects
 - Clients would then use these factory methods to construct objects,
@@ -426,3 +426,4 @@ object Element {
   def elem(line: String): Element = new LineElement(line)
 }
 ```
+
