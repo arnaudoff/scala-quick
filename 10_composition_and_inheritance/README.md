@@ -334,3 +334,95 @@ override def toString = contents mkString "\n"
 ```
 
 Overall, this is how the `Element` class looks now:
+
+```scala
+abstract class Element {
+  def contents: Array[String]
+  def width: Int = if (height == 0) 0 else contents(0).length
+  def height: Int = contents.length
+
+  def above(that: Element): Element =
+    new ArrayElement(this.contents ++ that.contents)
+
+  def beside(that: Element): Element =
+    new ArrayElement(
+        for (
+            (firstLine, secondLine) <- this.contents zip that.contents
+        ) yield firstLine + secondLine
+    )
+
+  override def toString = contents mkString "\n"
+}
+```
+
+## Defining a factory object
+
+- We can hide the already developer hierarchy behind a factory object
+- As a reminder, a factory object contains methods that construct
+other objects
+- Clients would then use these factory methods to construct objects,
+rather than constructing them directly with new
+- Advantage of this approach is that object creation can be
+centralized and the details of how objects are represented with
+classes can be hidden
+- Initially, we must choose where to locate the factor methods.
+- A good solution is to create a companion object of `Element` and make
+this the factory object for layout elements.
+- That way, only the `Element` object/class need to be exposed to the
+client, and not the implementations `ArrayElement` or `LineElement`
+
+```scala
+object Element {
+  def elem(contents: Array[String]): Element =
+    new ArrayElement(contents)
+
+  def elem(line: String): Element =
+    new LineElement(line)
+}
+```
+
+- Also, given these factory methods, we can change the implementations
+`ArrayElement` and `LineElement` to be private
+because they no longer need to be directly accessed by clients.
+
+Finally, this is the refactored version of `Element`:
+
+```scala
+import Element.elem
+
+abstract class Element {
+  def contents: Array[String]
+  def width: Int = if (height == 0) 0 else contents(0).length
+  def height: Int = contents.length
+
+  def above(that: Element): Element =
+    elem(this.contents ++ that.contents)
+
+  def beside(that: Element): Element =
+    elem(
+        for ((firstLine, secondLine) <- this.contents zip that.contents)
+        ) yield firstLine + secondLine
+    )
+
+  override def toString = contents mkString "\n"
+}
+```
+
+and the way to hide the implementations of the concrete classes "inside" the
+companion object
+
+```scala
+object Element {
+  private class ArrayElement(val contents: Array[String]) extends Element
+
+  private class LineElement(s: String) extends Element {
+    val contents = Array(s)
+    override def width = s.length
+    override def height = 1
+  }
+
+  def elem(contents: Array[String]): Element = new ArrayElement(contents)
+
+  def elem(line: String): Element = new LineElement(line)
+}
+```
