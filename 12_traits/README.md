@@ -230,4 +230,120 @@ half > third // true
 
 - The thing in the `[]` is called a type parameter, and is required when
 mixing in `Ordered`
-- **Note that `Ordered` does not provide equals**!
+- **Note that `Ordered` does not provide `equals`**!
+
+## Traits as stackable modifications
+
+- There's a second major use of traits: providing stackable modifications
+- Traits let you modify the methods of a class in a way that lets you stack
+these modifications with each other
+
+As an example, suppose you're given a queue of integers, and you want to
+stack modifications of it, for example if it has two operations `put`
+which enqueues an integer and `get`, which dequeues an integer, we could
+define traits to perform modifications such as
+
+- `Doubling` (which doubles every `x` that is put
+into the queue)
+- `Incrementing` (which peforms x++ for every x that is put into
+the queue )
+- `Filtering` (which takes every x such that x >= 0 from the queue)
+
+```scala
+abstract class IntQueue {
+  def get(): Int
+  def put(x: Int)
+}
+```
+
+```scala
+class BasicIntQueue extends IntQueue {
+  private val buffer = new ArrayBuffer[Int]
+  def get() = buffer.remove(0)
+  def put(x: Int) = { buffer += x }
+}
+```
+
+Sample usage of the above implementation is as follows:
+
+```scala
+val queue = new BasicIntQueue
+queue.put(33)
+queue.put(35)
+
+queue.get() // 33
+queue.get() // 35
+```
+
+Now, let's implement a trait that doubles integers as they are put in
+the queue:
+
+```scala
+trait Doubling extends IntQueue {
+  abstract override def put(x: Int) = { super.put(2 * x) }
+}
+```
+
+- The way we defined `Doubling` means that it can only be mixed into a class
+that also extends `IntQueue`
+- It has a `super` call on an abstract method, which is legal for a
+trait because `super` calls in traits are dynamically bound and will
+work as long as the trait is mixed in after another trait or class that
+actually defines the method concretely
+- To tell the compiler you're doing this on purpose, you must mark it as
+`abstract override` (it's allowed for traits only)
+
+```scala
+class CustomQueue extends BasicIntQueue with Doubling
+
+val queue = new CustomQueue
+queue.put(10)
+queue.get() // no surprise, 20
+```
+
+By the way, we could define `CustomQueue` without declaring a new class,
+e.g.
+
+```scala
+val queue = new BasicIntQueue with Doubling
+```
+
+which is good to know.
+
+But we haven't actually seen how to stack modifications, have we?
+Let's define more modifications:
+
+```scala
+trait Incrementing extends IntQueue {
+  abstract override def put(x: Int) = { super.put(x + 1) }
+}
+```
+
+```scala
+trait Filtering extends IntQueue {
+  abstract override def put(x: Int) = {
+    if (x >= 0) super.put(x)
+  }
+}
+```
+
+Now we can stack:
+
+```scala
+val queue = (new BasicIntQueue with Incrementing with Filtering)
+queue.put(-1)
+queue.put(0)
+queue.put(1)
+
+queue.get() // 1
+queue.get() // 2
+```
+
+- The order of mixins is significant: traits further to the right take
+effect first
+- In the previous example, `Filtering`'s put is invoked first, so it removes
+integers that are negative, `Incrementing`'s put is invoked
+afterwards, so it adds one to those integers that remain
+- If you reverse the order, e.g. `(new BasicIntQueue with Filtering with
+Incrementing)`, first integers will be incremented and then integers
+that are still negative will be discarded
