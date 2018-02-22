@@ -347,3 +347,17 @@ afterwards, so it adds one to those integers that remain
 - If you reverse the order, e.g. `(new BasicIntQueue with Filtering with
 Incrementing)`, first integers will be incremented and then integers
 that are still negative will be discarded
+
+## When to use a trait and when not
+
+- Whenever wants to implement reusable behaviour, the question trait vs
+abstract class arises
+
+There's no formal rule that says when to use either, but there's
+some guidelines:
+- If the behaviour will not be reused, then we simply use concrete class
+- If it might be reused in multiple, **unrelated** classes, then use a trait
+- If you want to inherit from it in Java code, use an abstract class
+- If you plan to distribute it in compiled form, and expect outside
+clients to write classes inheriting from it, use an abstract class
+
