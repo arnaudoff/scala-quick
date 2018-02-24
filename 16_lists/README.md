@@ -325,3 +325,105 @@ val xs = List(1, 2, 3)
 val arr = xs.toArray
 val ys = arr.toList
 ```
+
+## Higher-order methods on lists
+
+We will see how to implement classical functional programming patterns that more
+or less appear in day to day work, such as:
+
+- Transforming every element of a list in some way
+- Verifying whether a property holds for all elements in a list
+- Extracting from a list elements satisfying a certain criterion
+- Combining list elements
+- ...
+
+### Mapping over lists
+
+- The operation `xs map f` takes a list, and some function f and returns the
+list that results from applying the function f to each list element in xs
+
+```scala
+List(1, 2, 3) map (_ + 1) // List(2, 3, 4)
+
+val words = List("what", "the", "kcuf")
+words map (_.length) // List(4, 3, 4)
+words map (_.toList.reverse.mkString) // List("tahw", "eht", "fuck")
+```
+
+- The `flatMap` operator is similar to `map`, but it takes a function returning
+a list of elements and it applies the function to each list element and
+returns the concatenation of all function results
+
+```scala
+words map (_.toList) // List(List(w, h, a, t), List(t, h, e), List(k, c, u, f))
+words flatMap (_.toList) // List(w, h, a, t, t, h, e, k, c, u, f)
+```
+
+One may think of `flatMap` as a composition of `map` and `flatten`
+
+- The third map-like operation is `foreach`; however, it takes a procedure and
+applies the procedure to each list element
+
+```scala
+var sum = 0
+List(1, 2, 3, 4, 5) foreach (sum += _)
+```
+
+### Filtering lists
+
+- The operations `xs filter p` takes a list and a predicate and yields
+the list of all elements `x` in `xs` so that `p(x)` is `true`; this is similar to how
+subsets are formed (set theory)
+
+```scala
+List(1, 2, 3, 4, 5) filter (_ % 2 == 0) // List(2, 4)
+```
+
+- The `partition` method is like `filter`, but it returns a pair of lists;
+the first list in the pair contains the elements for which the predicate is true
+and the second list in the pair contains the elements for which the predicate is
+false, in other words: `xs partition p` <=> `(xs filter p, xs filter (!p(_)))`
+
+```scala
+List(1, 2, 3, 4, 5) partition (_ % 2 == 0) // (List(2, 4), List(1, 3, 5))
+```
+
+- The `find` method is similar to `filter` as well, but it returns the first
+element satisfying a given predicate; `xs find p` takes a list `xs` and the
+predicate `p`, and returns `Some(x)` if there's an element `x` in `xs` for
+which p(x) is true, otherwise `None`
+
+```scala
+List(1, 2, 3, 4, 5) find (_ % 2 == 0) // Some(2)
+```
+
+- The `takeWhile` and `dropWhile` operators also take a predicate; the operation
+`xs takeWhile p` takes the longest prefix of list `xs` such that every
+element in the prefix satisfies `p`; same goes for `xs dropWhile p`, which
+removes the longest prefix from `xs` such that every element in the prefix
+satisfies `p`
+
+```scala
+List(1, 2, 3, -4, 5) takeWhile (_ > 0) // List(1, 2, 3)
+```
+
+- The `span` method combines `takeWhile` and `dropWhile`; it returns a pair of
+two lists so that `xs span p` <=> `(xs takeWhile p, xs dropWhile p)` holds
+
+```scala
+List(1, 2, 3, -4, 5) span (_ > 0) // (List(1, 2, 3), List(-4, 5))
+```
+
+### Predicates over lists
+
+- The operation `xs forall p` is `true` is all elements in `xs` satisfy `p`
+- The operation `xs exists p` is true, if there's an element in `xs` that
+satisfies p
+
+The above operations map exactly to the respective quantifiers in mathematics,
+if we think of lists as sets.
+
+```scala
+def hasZeroRow(matrix: List[List[Int]]) =
+  m exists (row => row forall (_ == 0))
+```
