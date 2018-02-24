@@ -264,3 +264,108 @@ def isStringArray(x: Any) = x match {
   case _ => false
 }
 ```
+
+## Sealed classes
+
+- Whenever you pattern match, you need to ensure that you covered all cases
+- Sometimes this is done by adding a default case at the end, but
+that's when semantically it makes sense to have a default
+- In general, it's impossible to track when new classes are added,
+e.g. you can add an `Expression` class in the class hierarchy in a
+different compilation unit from where the other four cases are defined
+- The solution to this is to make the superclass of your case class `sealed`
+- A sealed class cannot have any new subclasses added except the ones in the
+same file
+- This is super useful for pattern matching: it means you only need to worry
+about subclasses you already know, and they are in the same file!
+- The compiler will also signal missing combinations of patterns with a
+warning message
+
+**In general**: If you consider writing a hierarchy of classes
+intended to be pattern matched, you should consider sealing the class at
+the top of the hierarchy.
+
+```scala
+sealed absract class Expression
+
+case class Variable(name: String) extends Expression
+case class Number(number: Double) extends Expression
+case class UnaryOperator(op: String, arg: Expression) extends Expression
+case class BinaryOperator(op: String, lhs: Expression, rhs: Expression) extends Expression
+```
+
+Now let's consider a pattern match where we omit some of the possible cases:
+
+```scala
+def foo(expr: Expression) = expr match {
+  case Variable(_) => "some variable"
+  case Number(_) => "some number"
+}
+```
+
+- The compiler will complain with something like "match is not exhaustive,
+missing combination UnaryOperator, BinaryOperator"!
+- If you really want to use it that way (you know in advance that the
+method will be applied only to either `Number` or `Variable` expression),
+consider:
+
+```scala
+def foo(expression: Expression) = (expression: @unchecked) match {
+  case Number(_) => "some number"
+  case Var(_) => "some variable"
+}
+```
+
+- Basically, you can add an annotation to an expression the same you way
+you add a type to it: expression, then colon, and the name of the
+annotation, e.g `expression: @unchecked`
+- The `@unchecked` annotation has a special meaning for pattern matching;
+if a match's selector expression has this annotation, exhausitivity
+checking for the patterns that follow will be suppressed.
+
+## The `Option` type
+
+- Scala has a standard type named `Option` which is used for the so called
+optional values
+- Such a value can have two forms: `Some(x)` where `x` is the actual
+value, or `None` object, which represents a missing value
+- For example, `Optional` values are produced by some of
+the standard operations on Scala's collections, e.g if you have a map,
+its `get` method produces `Some(value)` if a `value` corresponding to a
+given key's been found, and `None` if the given key is undefined
+
+```scala
+val capitals = Map("Bulgaria" -> "Sofia", "Russia" -> "Moscow")
+
+capitals get "Bulgaria" // Option[String] = Some(Sofia)
+capitals get "Germany" // Option[String] = None
+```
+
+A common idiom that connects pattern matching and optional values is:
+
+```scala
+def show(x: Option[String]) = x match {
+  case Some(s) => s
+  case None => "?"
+}
+```
+
+So, to display the values:
+
+```scala
+show(capitals get "Bulgaria") // Sofia
+show(capitals get "India") // ?
+```
+
+- Note that Java is inferior compared to Scala in solving this problem:
+using `null` to indicate no value; it's error prone as it's difficult in
+practice to keep track of which variables are allowed to be null
+- Obviously, if a variable is allowed to be `null`, you must always check if
+it's `null` when you use it, and when you forget to do so, you basically
+allow for `NullPointerException`'s to occur at runtime, and this is
+pain to find during testing
+- By contrast, Scala encourages the use of `Option` to indicate an optional
+value: first, it's obvious to readers that a variable of type `Option`
+can be `None` sometimes, and second, using a variable that may be null
+becomes a type error (if a variable is of type, say, `Option[String]` and
+you use it as a String, the program will simply not compile)
