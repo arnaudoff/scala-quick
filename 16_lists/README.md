@@ -236,3 +236,92 @@ def reverse[T](xs: List[T]): List[T] = xs match {
 
 Note, however, that this implementation has poor complexity.
 
+### List prefixes and suffixes
+
+- The `drop` and `take` operations return arbitrary prefixes or suffixes
+ of a list.
+- The expression `xs take n` returns the first `n` elements of the list `xs`
+- The operation `xs drop n` returns all elements of the list `xs`, except
+for the first `n` ones.
+- The `xs splitAt n` operation is equivalent to `(xs take n, xs drop n)`,
+otherwise said splits the list at a given index returning a pair of two
+lists
+- The difference, however, is that `splitAt` avoidd traversing `xs` twice!
+
+
+```scala
+val xs: List[Int] = List(1, 2, 3)
+xs take 2 // List(1, 2)
+xs drop 2 // List(3)
+xs splitAt 2 // (List(1), List(3))
+```
+
+### Element selection
+
+- Random element selection is supported through the `apply` method;
+however it's popular typically for arrays, not for lists
+- The reason is that `xs(n)` is O(n), because `apply` is defined as follows:
+
+```scala
+(xs drop n).head
+```
+
+### Flattening
+
+- The `flatten` method takes a list of lists and flattens it to a single list
+- It can be applied only to lists whose elements are all lists
+
+```scala
+List(List(1, 2), List(3), List(), List(4, 5)).flatten // List(1, 2, 3, 4, 5)
+```
+
+### Zipping
+
+- The `zip` operation takes two lists and forms a list of pairs
+- If the two lists are of different length, any unmatched elements are dropped
+
+```scala
+val x = List(1, 2, 3)
+val y = List('a', 'b', 'c')
+val z = x zip y // List((1, 'a'), (2, 'b'), (3, 'c'))
+```
+
+- A useful special case is to zip with index, which pairs every list element
+with the position where it appears in the list
+
+```scala
+val x = List('a', 'b', 'c')
+x.zipWithIndex // List(('a', 0), ('b', 1), ('c', 2))
+```
+
+- A list of tuples can be changed back to a tuple of lists by using `unzip`
+
+```scala
+val zipped = List(('a', 1), ('b', 2), ('c', 3))
+val unzipped = zipped.unzip // (List('a', 'b', 'c'), List(1, 2, 3))
+```
+
+### Displaying lists
+
+- Calling `toString` on a list returns the classical representation of the list
+- For a different representation, use `mkString`, which has the signature of
+`xs mkString (prefix, separator, postfix)`: the list to display, the prefix in
+front of all elements, a separator string to be displayed between successive
+elements and postfix string to be displayed at the end
+
+```scala
+val foo = List(1, 2, 3)
+foo.mkString("[", ",", "]") // [1, 2, 3]
+foo.mkString "" // 123
+foo.mkString // 123
+```
+
+### Converting lists
+
+- To convert between arrays and lists, use `toArray` and `toList`
+
+```scala
+val xs = List(1, 2, 3)
+val arr = xs.toArray
+val ys = arr.toList
+```
