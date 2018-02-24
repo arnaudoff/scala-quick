@@ -368,4 +368,127 @@ pain to find during testing
 value: first, it's obvious to readers that a variable of type `Option`
 can be `None` sometimes, and second, using a variable that may be null
 becomes a type error (if a variable is of type, say, `Option[String]` and
-you use it as a String, the program will simply not compile)
+you use it as a `String`, the program will simply not compile)
+
+## Some other uses of patterns
+
+- Anytime you define a `val` or `var` you can use a pattern instead of
+simple identifier
+- For example, you can take a tuple and "split" it into two
+parts that make up separate variables:
+
+```scala
+val someTuple = (1337, "Foo")
+val (leetNumber, foo) = someTuple
+```
+- This is also useful when working with case classes; if you know the
+exact case class, you can decompose it with a pattern:
+
+```scala
+val expression = new BinaryOperator("*", Number(20), Number(5))
+
+val BinaryOperator(operator, left, right) = expression
+```
+
+## Case sequences
+
+- A sequene of cases in curly braces can be used anywhere a function
+literal can be used (essentially, a case sequence is a function literal)
+- Instead of having a single entry point and list of parameters,
+a case sequence has multiple entry points, each with their own list of
+parameters
+- Each case is an entry point to the function, and the parameters are
+specified with the pattern
+- The body of each entry point is the right-hand side of the case
+
+```scala
+val foo: Option[Int] => Int = {
+  case Some(x) => x
+  case None => 0
+}
+
+foo(Some(33)) // 33
+foo(None) // 0
+```
+
+- The body of this function has two cases: the first case matches a `Some`,
+and returns the number "encapsulated" within the `Some`, the second
+matches a `None`, and returns a default value of zero
+- The same pattern is used in the Akka's actors library, because it allows
+its receive method to be defined as series of cases (case sequence):
+
+```scala
+var sum = 0
+
+def receive = {
+  case Data(byte) => sum += byte
+  case GetChecksum(requester) => {
+    val checksum = ~(sum & 0xFF) + 1
+    requester ! checksum
+  }
+}
+```
+
+- It's worth noting that a case sequence gives you a partial function, so
+if you apply it to a value it does not support, it will generate
+a runtime exception
+- By partial function we mean partial function in mathematical sense
+
+Let `second` be a function that returns the second element in a list:
+
+```scala
+val second: List[Int] => Int = {
+  case x :: y :: _ => y
+}
+```
+
+- The compiler will complain, because this function works for a
+three-element list, but not for an empty list, otherwise said we'll have a
+match that is not exhaustive
+
+```scala
+second(List(1, 2, 3)) // 2
+second(List()) // MatchError
+```
+
+- So, in order to solve the problem, you must check whether a partial
+function is defined; in other words, you must tell the compiler that
+you're working with partial functions
+- The type `List[Int] => Int` includes all functions from lists of
+integers to integers, whether or not they are partial; the type that only
+includes the partial functions is called `PartialFunction[List[Int], Int]`
+
+```scala
+val second: PartialFunction[List[Int], Int] = {
+  case x :: y :: _ => y
+}
+```
+
+- Now, we can check whether `second` is defined for some `x`:
+
+```scala
+second.isDefinedAt(List(5, 6, 7)) // true
+second.isDefinedAt(List()) // false
+```
+
+- The above function is a **typical example** for a partial function
+
+In fact, the partial function gets translated to something like that by the
+compiler:
+
+```scala
+new PartialFunction[List[Int], Int] {
+  def apply(xs: List[Int]) = xs match {
+    case x :: y :: _ => y
+  }
+
+  def isDefinedAt(xs: List[Int]) = xs match {
+    case x :: y :: _ => true
+    case _ => false
+  }
+}
+```
+
+- In general, you should try to use complete functions (or, if we're
+mathematically correct, total functions) whenever possible, because partial
+functions allow for runtime errors
