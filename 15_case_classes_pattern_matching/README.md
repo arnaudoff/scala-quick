@@ -492,3 +492,24 @@ new PartialFunction[List[Int], Int] {
 - In general, you should try to use complete functions (or, if we're
 mathematically correct, total functions) whenever possible, because partial
 functions allow for runtime errors
+
+### Patterns in `for` expressions
+
+- You can also use patterns in `for` expressions
+- In the example below, we retrieve all key/value pairs from the
+`capitals` map we showed earlier
+
+```scala
+for ((country, city) <- capitals)
+  println("The capital of " + country + " is " + city)
+```
+
+- Obviously, a pattern might not match a generated value; for example:
+
+```scala
+val fruitList = List(Some("apple"), None, Some("orange"))
+for (Some(fruit) <- fruitList)
+  println(fruit)
+```
+
+prints only apple and orange.
