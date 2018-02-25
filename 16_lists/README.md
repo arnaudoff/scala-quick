@@ -427,3 +427,109 @@ if we think of lists as sets.
 def hasZeroRow(matrix: List[List[Int]]) =
   m exists (row => row forall (_ == 0))
 ```
+
+### Folding lists
+
+- Another common operation is to combine the elements of a list with some
+operator
+
+```scala
+sum(List(a, b, c)) // 0 + a + b + c
+```
+
+which could be defined like that
+
+```scala
+def sum(xs: List[Int]): Int = (0 /: xs) (_ + _)
+```
+
+or, similarly,
+
+```scala
+product(List(a, b, c)) // 1 * a * b * c
+```
+
+which could be defined like that
+
+```scala
+def product(xs: List[Int]): Int = (1 /: xs) (_ * _)
+```
+
+Another example: concatenating all words in a list with spaces between them
+
+```scala
+("" /: words) (_ + " " + _)
+```
+
+- A fold left operation, such as `(z /: xs) (op)` needs three objects to be a
+valid operation: a start value `z`, some list `xs` and a binary operation
+`op`
+- The result of the fold is `op` applied between successive elements of the
+list, prefixed by `z`
+
+```scala
+((z /: List(a, b, c))(op) // op(op(op(z, a), b), c)
+```
+
+- A fold right operation, as an analog, has the opposite way of working and has
+the first two operands reversed:
+
+```scala
+(List(a, b, c) :\ z) (op) // op(a, op(b, op(c, z)))
+```
+
+- To understand why the operators look that strange, try to draw the tree of
+op calls over the elements (the comments in the code). Notice that the trees
+are left-leaning and right-leaning, respectively.
+- For associative operations, fold left and fold right are equivalent
+
+Example: sample implementation of `flatten`
+
+```scala
+def flattenRight[T](xss: List[List[T]]) =
+  (xss :\ List[T]()) (_ ::: _)
+```
+
+- Note that we explicitly state the type of the empty list, because the type
+inferencer fails to infer it (more on why that happens later)
+
+Example: list reversal with fold
+
+```scala
+def reverseLeft[T](xs: List[T]) =
+  (List[T]() /: xs) {(ys, y) => y :: ys}
+```
+
+- In order to understand the implementation, simply write a tree and follow the
+definitions we gave earlier
+- Again, the type annotation is `List[T]()` to make the type inferencer work
+- Complexity-wise, this solution is better than the one we showed earlier,
+because it applies a constant time operation (the reverse of `::`) `n` times,
+where `n` is the length of the argument list; otherwise put, if you imagine
+the tree of `foldLeft`, its height is `n`.
+
+### Sorting
+
+- `xs sortWith before` sorts the list `xs` using the `before` function as a
+comparison function
+
+```scala
+List(1, 3, 2, 8, 4, 5) sortWith (_ < _) // 1 2 3 4 5 8
+```
+
+- `sortWith` performs a merge sort
+
+## Methods on the `List` object
+
+- All operations we've seen so far were implemented as methods of class `List`
+- We'll now present some of the methods on the `scala.List` object, which is the
+companion object of class `List`
+
+### Creating lists from their elements
+
+- A literal `List(1, 2, 3)` is actually the application of the object `List` to
+the elements 1, 2 and 3. Otherwise put, it's equivalent to `List.apply(1, 2, 3)`
+
+```scala
+List.apply(1, 2, 3) // List(1, 2, 3)
+```
