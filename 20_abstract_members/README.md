@@ -272,7 +272,7 @@ simply, an object definition can be seen as a shorthand for the definition
 of a lazy `val` with an anonymous class that describes the object's contents
 
 Now, let's go back to the original problem we were solving by defining
-what lazy vals are. This is how our RationalTrait could be redesigned
+what lazy vals are. This is how our `RationalTrait` could be redesigned
 (notice that all initialization code is now part of the right-hand side of
 a lazy `val`, it is now safe to initialize the abstract fields
 of `LazyRationalTrait`):
@@ -333,3 +333,331 @@ values get initialized on demand, so you don't have to think how to
 arrange `val` definitions to ensure that everything is defined when it is
 needed (of course that's when no side effects are present, in general lazy
 `val`s go well with functional code)
+
+## Abstract `type`s
+
+- In the beginning, we saw `type T` as an abstract type declaration
+- Like all other abstract declarations, the idea is that the type will be
+defined concretely in subclasses
+- In this case, it's just a type that will be defined further down in the
+class hierarchy
+- Put simply, when you write `type T` you refer to at type `T` that is yet
+unknown at the point where it is declared, and different subclasses can
+provide different implementations of `T`
+
+A good example of where abstract types are applicable is the following
+hierarchy:
+
+```scala
+class Food
+
+abstract class Animal {
+  def eat(food: Food)
+}
+```
+
+```
+class Grass extends Food
+
+class Cow extends Animal {
+  override def eat(food: Grass) = {}
+}
+```
+
+However, this won't compile, because the `eat` method in class `Cow` did not
+override the `eat` method in `Animal` (the parameter types are
+different). Although one may think that the type system should cover this,
+however, it leads to unsafe situations, such as:
+
+```scala
+class Fish extends Food
+
+val someCow: Animal = new Cow
+someCow.eat(new Fish) // semantically wrong..
+
+```
+
+Here's where abstract types come in handy. Since `Animals` do eat `Food`,
+but what kind of `Food` each `Animal` eats depends on the `Animal`, we can
+express this nicely with abstract types:
+
+```scala
+class Food
+
+abstract class Animal {
+  type SuitableFood <: Food
+
+  def eat(food: SuitableFood)
+}
+```
+
+In order words, an `Animal` can only eat food that is suitable; however, we
+cannot determine what food is suitable at that level of the hierarchy,
+because we need to know the type of the animal beforehand - a perfect fit
+for abstract types, huh? `SuitableFood` is modeled as an abstract type.
+- The type has an "upper bound" `Food` (expressed by the `<: Food` clause)
+- Having an upper bound means that any concrete instantiation of
+`SuitableFood` must be a subclass of `Food`
+
+```scala
+class Grass extends Food
+
+class Cow extends Animal {
+  type SuitableFood = Grass
+  override def eat(food: Grass) = {}
+}
+```
+
+## Path-dependent types
+
+- In Scala, objects can have types as members: for instance, in the
+above example, if we had a cow instance `foo`, `foo.SuitableFood` would
+mean the type `SuitableFood` that is a member of the object referenced
+from `foo` or, put in other words, the type of food that's suitable
+for `foo`
+- A type like `foo.SuitableFood` is called a *path-dependent type*, where
+path here means a reference to an object: it could be a single name or a
+longer access path, e.g `farm.cows.foo`
+- Obviously, different paths give rise to different types, for example:
+
+```scala
+class DogFood extends Food
+
+class Dog extends Animal {
+  type SuitableFood = DogFood
+  override def eat(food: DogFood) = {}
+}
+```
+
+so
+
+```scala
+val foo = new Cow
+val bar = new Dog
+bar.eat(new foo.SuitableFood) // fails, can't feed cow food to a dog
+```
+
+fails as explained.
+
+- Obviously, if you have two objects of type Dog, you can feed one of them
+with the `SuitableFood` of the other and vice versa
+
+A path-dependent type is similar to the syntax for an inner class type in
+Java, but there's a fundamental difference: a path-dependent type names an
+outer **object**, whereas an inner class type names an outer **class**.
+Java-style inner class types can also be expressed in Scala, but they are
+written differently. Consider:
+
+```scala
+class Outer {
+  class Inner
+}
+```
+
+- In Scala, the inner class is addressed using `Outer#Inner` instead of
+Java's `Outer.Inner`; the `.` syntax is reserved for objects
+
+```scala
+val object1 = new Outer
+val object2 = new Outer
+
+object1.Inner // path-dependent type
+object2.Inner // path-dependent type
+```
+
+- In the above example, `object1.Inner` and `object2.Inner` are two
+path-dependent types which are subtypes of `Outer#Inner`
+- In Scala just like in Java, inner class instances hold a reference to an
+enclosing outer class instance, which allows an inner class to access
+members of its outer class; put in other words, an inner class cannot be
+instantiated without in some way specifying an outer class instance
+
+## Refinement types
+
+- When a class inherits from another, we call the first class a
+*nominal subtype* of the other one
+- It's a nominal subtype because each type has a name and the names are
+explicitly declared to have a subtyping relationship
+- There's another subtyping relationship called *structural subtyping*,
+where you get subtyping relationship simply because two types have
+compatible members; this is achieved using *refinement* types
+
+### Nominal vs structural subtyping
+
+- Nominal subtyping is usually more convinient, so it should be tried first
+- Basically, a name is a single short identifier and is therefore better
+than explicitly listing member types
+- Also, structural subtyping is sometimes more flexible than required;
+for example a `Widget` can `draw()`, and also a painter can `draw()`, but
+they aren't really substitutable: you'd prefer to get a type error if
+you one for the other
+
+However, structural subtyping has some advantages:
+- Sometimes, there's really no more to a type than its members; consider a
+`Pasture` class that contains animals that eat grass
+- One option for the above is to have a trait called
+e.g `AnimalThatEatsGrass` and mix it into every class where it applies;
+- Such solution would be too verbose (for instance, class `Cow` already has
+defined that it's an animal and that it eats grass, now it'd have to
+declare that once more)
+- Scala has a better alternative: refinement types
+
+```scala
+Animal { type SuitableFood = Grass } // animal that eats grass
+```
+
+- The above defines a refinement type: you write the base type, followed
+by a sequence of members listed in curly braces
+- The members in the curly braces further specify (refine) the types of
+members from the base class
+
+With that tool at hand, we can write the `Pasture` class:
+
+```scala
+class Pasture {
+  var animals: List[Animal { type SuitableFood = Grass}] = Nil
+}
+```
+
+## Enumerations
+
+- Unlike other languages, Scala doesn't have enumerations as a built-in
+language construct to define new types
+- Instead, there's a class called `scala.Enumeration` in its standard
+library
+- To define a new enumeration, you define an object that extends this class
+
+```scala
+object Color extends Enumeration {
+  val Red = Value
+  val Green = Value
+  val Blue = Value
+}
+```
+
+or equivalently
+
+```scala
+object Color extends Enumeration {
+  val Red, Green, Blue = Value
+}
+```
+
+- `Enumeration` defines an inner class named `Value`, and a parameterless
+`Value` method (with the same name), which returns an instance of that class
+- Put simply, a value such as `Color.Red` is of type `Color.Value`
+where `Color.Value` is the type of all enumeration values defined in
+object `Color`
+- `Color.Value` is actually a path-dependent type, with `Color` being
+the path and `Value` being the dependent type
+- It's vital to note that it's a completely new type, different from all
+other types, so if you define another enumeration:
+
+```scala
+object Direction extends Enumeration {
+  val North, East, South, West = Value
+}
+```
+
+then `Direction.Value` is different from `Color.Value`, because the path
+parts of the two types differ
+
+- You can also associate names with enumeration values (like in some
+other languages) by using a different overloaded variant of the `Value`
+method:
+
+```scala
+object Color extends Enumeration {
+  val Red = Value("Red")
+  val Green = Value("Green")
+  val Blue = Value("Blue")
+}
+```
+
+Also, two more things: 
+- You can iterate over the enumeration values using the `values` method,
+define on `Enumeration`:
+
+```scala
+for (c <- Color.values)
+  println(c + " ")
+```
+
+## An example of abstract types: currencies
+
+- The idea is to design a class `Currency`, where an instance of `Currency`
+would represent an amount of money in dollars, euros, or some other
+currency
+- It should also be possible to do some arithmetic on
+currencies; e.g to add two amounts of the same currency or multiply a
+currency amount by a factor
+
+```scala
+abstract class Currency {
+  val amount: Long
+  def designation: String
+  override def toString = amount + " " + designation
+  def + (that: Currency): Currency = // ??
+  def * (x: Double): Currency = // ??
+}
+```
+
+Few things to note:
+- `amount` of a currency is the number of currency units it represents
+- `amount` is also left abstract waiting to be defined when a subclass
+"talks" about concrete amounts of money
+- `designation` is a string that identifies it
+
+Concrete currency value could be created like that:
+
+```scala
+new Currency {
+  val amount = 33L
+  def designation = "USD"
+}
+```
+
+The above design, however, is flawed. It would only be fine if it modelled a
+single currency, e.g. only dollars or euros. Consider that you want to model
+dollars and euros:
+
+```scala
+abstract class Dollar extends Currency {
+  def designation = "USD"
+}
+
+abstract class Euro extends Currency {
+  def designation = "Euro"
+}
+```
+
+however, this lets you add dollars to euros which, obviously, is no good.
+
+What we need instead is a more "specialized" version of the `+` method: when
+implemented in class `Dollar`, it should take `Dollar` arguments and yield a
+`Dollar` result; when implemented in `Euro` it should take `Euro` arguments
+and yield `Euro` result. In other words, the type of the addition method
+would change depending on which class you are in, but the method should be
+written only once, not each time a new currency is defined. This is a
+perfect fit for abstract types.
+
+```scala
+abstract class AbstractCurrency {
+  type Currency <: AbstractCurrency // represents the currency "in question"
+  val amount: Long
+  def designation: String
+  override def toString = amount + " " + designation
+  def + (that: Currency): Currency = // ..
+  def * (x: Double): Currency = // ..
+}
+```
+
+Now, for example `Dollar` should "fix" the `Currency` type to refer to the
+concrete class itself:
+
+```scala
+abstract class Dollar extends AbstractCurrency {
+  type Currency = Dollar
+  def designation = "USD"
+}
+```
