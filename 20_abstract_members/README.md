@@ -187,3 +187,149 @@ only after the superclass has been initialized
 In fact, the above difference has a solution: there exist *pre-initialized
 fields* and *lazy vals*, so that we can get abstract `val`s and
 parameters to behave as closely as possible.
+
+### Pre-initialized fields
+
+- Pre-initialized fields let you initialize a field of a subclass before the
+superclass is called
+- To do this, simply place the field definition in braces **before** the
+superclass constructor call:
+
+Example (consider that we're using `x` here only to show that it's an
+expression and not a literal):
+
+```scala
+new {
+  val nominator = 1 * x
+  val denominator = 2 * x
+} with RationalTrait
+```
+
+- That solves our problem, however, it's worth mentioning that
+pre-initialized fields can be used not only in the case of anonymous
+classes, but also for "ordinary" classes and even objects:
+
+```scala
+class Rational(n: Int, d: Int) extends {
+  val numerator = n
+  val denominator = d
+} with RationalTrait {
+  // some code
+}
+```
+
+and
+
+```scala
+object oneHalf extends {
+  val numerator = 1
+  val denominator = 3
+} with RationalTrait
+```
+
+### Lazy vals
+
+- Pre-initialized fields simulate precisely the behaviour of class
+constructor arguments when it comes to initialization
+- Lazy `val`s are a tool that allow your `val` definitions to have the
+property that the initializing expression on the right-hand side will
+only be evaluated the first time the `val` is used
+
+```scala
+object Foo {
+  val bar = { println("...initializing bar"); 33}
+}
+```
+
+Now, if you refer to `Foo`, the following result will come up:
+
+```
+initializing bar
+```
+
+If you refer to the member variable, `Foo.bar`, it returns `33`. In other
+words, the moment you use `Foo` its `bar` field becomes initialized. Now,
+if you use `lazy` `val`s (define `bar` to be a lazy val):
+
+```scala
+object Foo {
+  lazy val bar = { println("..initializing bar"); 33 }
+}
+```
+
+when you refer to `Foo`, it doesn't print the initializing message.
+However, it is printed as soon as you access `bar`. In other words,
+initializing `Foo` does not involve initializing `bar`: the initialization
+of `bar` is deferred until the first time `bar` is used.
+
+- The way lazy vals work is similar to a parameterless `def` method
+- The difference is that, unlike a `def`, a lazy val is never evaluated more
+than once: after the first evaluation of a lazy `val` the result of the
+evaluation is stored and reused when the same `val` is used later on
+- Actually, objects like `Foo` themselves act like lazy `val`s in that
+they are also initialized on demand the first time they're used; put
+simply, an object definition can be seen as a shorthand for the definition
+of a lazy `val` with an anonymous class that describes the object's contents
+
+Now, let's go back to the original problem we were solving by defining
+what lazy vals are. This is how our RationalTrait could be redesigned
+(notice that all initialization code is now part of the right-hand side of
+a lazy `val`, it is now safe to initialize the abstract fields
+of `LazyRationalTrait`):
+
+```scala
+trait LazyRationalTrait {
+  val numeratorArg: Int
+  val denominatorArg: Int
+
+  lazy val numerator = numeratorArg / g
+  lazy val denominator = denominatorArg / g
+
+  override def toString = numerator + "/" + denominator
+
+  private lazy val g = {
+    require(denominatorArg != 0)
+    gcd(numeratorArg, denominatorArg)
+  }
+
+  private def gcd(a: Int, b: Int): Int = // ...
+}
+```
+
+Let's try to use the same construction that broke our initialization
+earlier:
+
+```scala
+val x = 2
+
+new LazyRationalTrait {
+  val numeratorArg = 1 * x
+  val denominatorArg = 2 * x
+}
+
+// initializes safely to 1/2
+```
+
+As an exercise, here's all of the initialization steps performed in the
+above piece of code:
+- An instance of `LazyRationalTrait` is created, the initialization code
+of it is executed; however, it's empty as none of the fields of
+`LazyRationalTrait` is initialized yet
+- The primary constructor of the anonymous subclass defined by the `new`
+expression is executed, which initializes `numeratorArg` with `2` and
+`denominatorArg` with `4`
+- Next, the `toString` is invoked on the constructed object
+- Next, the `numerator` field is accessed for the first time
+by `toString`, so its initializer is evaluated
+- The initializer of `numerator` accesses the private field, `g` so `g` is
+    evaluated next
+- Next, the `toString` method accesses the value of `denominator`, which
+causes its evaluation; the evaluation of `denominator` accesses
+`denominatorArg` and `g`, but the initializer of the `g` field is not
+re-evaluated, because it was already evaluated
+
+The textual order of lazy vals definitions doesn't matter because
+values get initialized on demand, so you don't have to think how to
+arrange `val` definitions to ensure that everything is defined when it is
+needed (of course that's when no side effects are present, in general lazy
+`val`s go well with functional code)
