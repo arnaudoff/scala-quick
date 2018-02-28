@@ -142,3 +142,48 @@ trait AbstractTime {
   def minute_=(x: Int)
 }
 ```
+
+### Initializing abstract `val`s
+
+- Abstract `val`s can be used in a similar manner to superclass
+parameters: you can provide the details in a subclass that are missing in
+a superclass
+- The above is especially useful for traits, as traits don't have a
+constructor to which you could pass parameters
+- To sum up, when you want to parameterize a trait, use abstract `val`s
+that are implemented in subclasses
+
+```scala
+trait RationalTrait {
+  val numerator: Int
+  val denominator: Int
+}
+```
+
+Earlier, we defined such a `Rational` class that had two parameters;
+however, the trait above defines instead two abstract vals;
+so to instantiate it we needn't to call the constructor, but rather
+implement the abstract `val` definitions, which is by doing that:
+
+```scala
+new RationalTrait {
+  val numerator = 1
+  val denominator = 2
+}
+```
+
+- Here, we "instantiate" the trait; the expression in the curly braces
+yields an instance of an *anonymous class* that mixes in the trait and is
+defined by the body
+- The effect is similar to instantiating our `Rational` class with `new`,
+e.g. `new Rational(expression1, expression2)`
+
+There is a subtle difference though:
+- When initializing the class, `expression1` and `expression2` are first
+evaluated, and then the class initialized with their respective values
+- For traits, an implementing `val` definition in a subclass is evaluated
+only after the superclass has been initialized
+
+In fact, the above difference has a solution: there exist *pre-initialized
+fields* and *lazy vals*, so that we can get abstract `val`s and
+parameters to behave as closely as possible.
