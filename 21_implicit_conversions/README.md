@@ -559,3 +559,86 @@ all what the purpose of the type is; it could be an equality test, a less
 than test, or whatever. Using `Ordering[T]` on the other hand,
 clearly indicates that the implicit parameter is used for ordering
 elements of `T`.
+
+## Context bounds
+
+- When you use `implicit` on a parameter, not only will the compiler try to
+supply that parameter with an implicit value, but it will also use that
+parameter as an available implicit in the body of the method
+
+```scala
+def maxList[T](xs: List[T])(implicit ordering: Ordering[T]): T =
+  xs match {
+    case List() => throw new IllegalArgumentException()
+    case List(x) => x
+    case x :: rest =>
+      val maxRest = maxList(rest) // ordering is implicit here
+      if (ordering.gt(x, maxRest)) x
+      else maxRest
+  }
+```
+
+In other words, in the above example the compiler will see that the types
+do not match up, because `maxList(rest)` supplies only one parameter list,
+but `maxList` requires two; since the second is implicit, the compiler
+looks for an implicit parameter of type `Ordering[T]`, finds one and
+rewrites the call to `maxList(rest)(ordering)`.
+
+You can also go further: eliminate the second use of `ordering`. It can be
+done using the `implicitly` method defines in the standard librabry, like that:
+
+```scala
+def maxList[T](xs: List[T])(implicit comparator: Ordering[T]): T =
+  xs match {
+    case List() => throw new IllegalArgumentException()
+    case List(x) => x
+    case x :: rest =>
+      val maxRest = maxList(rest)
+      if (implicitly[Ordering[T]].gt(x, maxRest)) x
+      else maxRest
+  }
+```
+
+As you've noticed, `implicitly` has the following signature:
+
+```scala
+def implicitly[T](implicit t: T) = t
+```
+
+The effect of calling `implicitly[Foo]` is that the compiler will look
+for an implicit definition of type `Foo` and will then call the
+`implicitly` method with that object, which in turns returns the object
+right back; put simply, you can write `implicitly[Foo]` whenever you want
+to find an implicit object of type `Foo` in the current scope.
+
+- Because this pattern is so common, Scala lets you leave out the name of
+this parameter (`comparator`) and shorten the method signature by using
+the so-called context bound
+
+```scala
+def maxList[T: Ordering](xs: List[T]): T =
+  xs match {
+    case List() => throw new IllegalArgumentException()
+    case List(x) => x
+    case x :: rest =>
+      val maxRest = maxList(rest)
+      if (implicitly[Ordering[T]].gt(x, maxRest)) x
+      else maxRest
+  }
+```
+
+- The syntax `[T: Ordering]` is a context bound and it does two things
+- Introduces a type `T` as a normal type
+- Adds an implicit parameter of type `Ordering[T]`
+- The difference between using a context bound and not using a context
+bound is that when using a context bound, you don't know what the
+parameter will be called (you often don't need to know what's called
+anyways)
+
+Context bound can be thought of as saying something about a type parameter. 
+For example, when you write `[T <: Ordered[T]]` you are saying that `T` is
+an `Ordered[T]`. On the other hand, like in the previous example, when you
+write `[T: Ordering]` you are not so much saying what `T` is, but you're
+saying that there's some form of ordering (or any other property)
+associated with `T`.
+
