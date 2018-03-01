@@ -218,3 +218,128 @@ import Conversions.stringWrapper
 Since implicit conversions had names, we could explicitly state which one to
 import and which one not to.
 
+## Where implicit conversions are tried
+
+There are three placs implicits are used in the language:
+- Conversions to an expected type: let you use use one type in a context
+where a different type is expected, as shown already
+- Conversions of the receiver of a selection: they allow you to adapt the
+receiver of a method call, if the method is not applicable on the original
+type, such as `"abc".exists`, which is converted to
+`stringWrapper("abc").exists` since `exists` is defined on indexed
+sequences but not on strings
+- Implicit parameters: used to provide more information to the called
+function about what the caller wants; especially useful with generic
+functions where the called function might otherwise know nothing at
+all about the type of an argument
+
+## Implicit conversions to an expected type
+
+- The rule is what we already mentioned: whenever the compiler sees
+an `X`, but needs a `Y`, it'll look for an implicit function that
+converts `X` to `Y`
+
+Example:
+
+```scala
+val foo: Int = 3.3 // fails
+
+implicit def doubleToInt(x: Double) = x.toInt
+
+val foo: Int = 3.3 // equivalent to val foo: Int = doubleToInt(3.3)
+
+// foo is now 3
+```
+
+- Note that `doubleToInt` is in scope as a single identifier
+
+## Converting the receiver
+
+- Implicit conversion also take effect to the receiver of a method call
+- Such implicit conversion has two main uses: the receiver conversions
+allow smoother integrations of a new class into an existing hierarchy and
+second, they support writing DSLs within the language itself
+
+In other words, say you have an object `obj` and a method `foo`,
+but `obj` does not have `foo` defined as a member. The compiler will try
+to insert conversions before giving up, and in this case, the conversion
+needs to apply to the receiver (`obj`). In other words, the compiler will
+act as if the expected type of `obj` was "has a member `foo`".
+
+### Smoother integration of new types
+
+- As mentioned, one major use of receiver conversions is allowing smoother
+    integration of new types with existing types
+
+Consider the `Rational` class we were building earlier:
+
+```scala
+class Rational(n: Int, d: Int) {
+  def + (that: Rational): Rational
+  def + (that: Int): Rational
+}
+```
+
+- You can obviously add two rational numbers and a rational number and
+an `Int`
+
+```scala
+val oneHalf = new Rational(1, 2)
+oneHalf + oneHalf // 1/1
+oneHalf + 1 // 3/2
+```
+
+- But what about `1 + oneHalf`? Obviously the receiver has no such method
+and it doesn't compile
+- To allow this type of arithmetic, you need to define an implicit
+conversion from `Int` to `Rational`
+
+```scala
+implicit def intToRational(x: Int) = new Rational(x, 1)
+```
+
+Here, the compiler type checks `1 + oneHalf` as it is, it fails
+because `Int` has no `+` method that takes a `Rational` argument, then
+it searches for an implicit conversion from `Int` to another type that
+has a `+` method, finds our implicit definition and applies it which
+yields `intToRational(1) + oneHalf`.
+
+### Simulating new syntax
+
+- Another major use of implicit conversions is to "simulate" adding new
+syntax
+
+Scala supports maps using a syntax like this:
+
+```scala
+Map(1 -> "one", 2 -> "two", 3 -> "three")
+```
+
+Actually, the `->` here is not syntax. `->` is a method on the
+class `ArrowAssoc`, a class that is defined in the standard Scala
+preamble (`scala.Predef`), which also defines an implicit
+conversion from `Any` to `ArrowAssoc`. When you write `1 -> "one"`, the
+compiler inserts a conversion from `1` to `ArrowAssoc` so that the `->`
+method can be found.
+
+The definition looks something like that:
+
+```scala
+object Predef {
+  class ArrowAssoc[A](x: A) {
+    def ->[B](y: B): Tuple2[A, B] = Tuple2(x, y)
+  }
+
+  implicit def any2ArrowAssoc[A](x: A): ArrowAssoc[A] = new ArrowAssoc(x)
+}
+```
+
+- This is the "rich wrappers" pattern, which is common in libraries
+that provide syntax-like extensions to the language, so it should be
+easily recognized
+- As a rule, whenever you see someone calling methods that appear not
+to exist in the receiver class, they are problably using implicits
+- As a rule, if you see a class named `Rich<x>`, that class is likely adding
+syntax-like methods to the type `x`
+- These rich wrappers often allow you to even define an internal DSL as a
+    library, where in other languages you'll need to define external DSL.
