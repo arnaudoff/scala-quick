@@ -343,3 +343,219 @@ to exist in the receiver class, they are problably using implicits
 syntax-like methods to the type `x`
 - These rich wrappers often allow you to even define an internal DSL as a
     library, where in other languages you'll need to define external DSL.
+
+### Implicit classes
+
+- An implicit class is a class that is preceded by the `implicit` keyword
+- For any such class, the compiler generates an implicit conversion from the
+class's constructor parameter to the class itself
+- Such a conversion is required if you plan to use the class for the rich
+wrappers pattern
+
+Example:
+
+```scala
+case class Rectangle(width: Int, height: Int)
+```
+
+If you use `Rectangle` very frequenly, you might want to use the rich
+wrappers pattern so you can more easily construct it:
+
+```scala
+implicit class RectangleMaker(width: Int) {
+  def x(height: Int) = Rectangle(width, height)
+}
+```
+
+Written that way, the below is automatically generated:
+
+```scala
+implicit def RectangleMaker(width: Int) = new RectangleMaker(width)
+```
+
+So, you can create rectangles by putting an `x` between two integers:
+
+```scala
+val rect = 3 x 4
+```
+
+Since type `Int` has no method called `x`, the compiler looks for an
+implicit conversion from `Int` to something that has a method `x`; it will
+find the automatically generated `RectangleMaker` conversion
+(`RectangleMaker` has a `x` method) and insert the call to the conversion
+respectively.
+
+**Note**: An implicit class must be defined inside of another `trait`,
+`class` or `object` and may only take one non-implicit argument in their
+constructor.
+
+## Implicit parameters
+
+- The last place where the compiler inserts implicits is withing argument
+list
+- The compiler sometimes replaces `foo(x)` with `foo(x)(y)` or
+`new Foo(x)` with `new Foo(x)` with `new Foo(x)(y)`, thereby adding a
+missing parameter list to complete a function call
+- Also, the entire last curried parameter list is supplied,
+not just the last parameter
+
+Example: if `foo`'s missing last parameters list takes three parameters,
+the compiler might replace `foo(t)` with `foo(t)(x, y, z)`
+
+In other for this to work, inserted identifiers such as `x`, `y` and `z`
+should be marked `implicit` where they're defined and the last
+parameter list in `foo` or `Foo` must be marked `implicit` as well.
+
+**Practical example**: Say you're writing some shell interface and you
+have a class `PreferredPrompt`, which encapsulates a shell prompt string
+such as `$`, `>` etc.
+
+```scala
+class PreferredPrompt(val preference: String)
+```
+
+Also, say you have a `Greeter` object with a `greet` method which takes two
+parameter lists: the first takes a user name and the second takes a
+`PreferredPrompt`:
+
+```scala
+object Greeter {
+  def greet(name: String)(implicit prompt: PreferredPrompt) = {
+    println("Welcome, " + name)
+    println(prompt.preference)
+  }
+}
+```
+
+- As you probably noticed, the last parameter list is marked `implicit`,
+which means it can be supplied implicitly
+- For that purpose, you must first define a variable of the expected type
+- Say the variable is `prompt`. It should also be marked `implicit`
+- If it wasn't, the compiler would not use it to supply the missing
+parameter list:
+
+```scala
+object JohnsPreferences {
+  implicit val prompt = new PreferredPrompt("> $")
+}
+```
+
+**Note**: You should never forget to actually bring the `implicit` val
+into scope with an `import`, because if it's missing from the scope as a
+single identifier, it won't be used to fill in the missing parameter list:
+
+```scala
+import JohnsPreferences._
+```
+
+However, you can still provide the prompt explicitly:
+
+```scala
+val scalasPrompt = new PreferredPrompt("scala> ")
+Greeter.greet("John")(scalasPrompt)
+
+// Welcome, John
+// scala>
+```
+
+- Also, note that the `implicit` keyword applies to an entire parameter
+list, not to individual parameters, so we could do the following as well:
+
+```scala
+class PreferredPrompt(val preference: String)
+class PreferredTimeFormat(val preference: String)
+
+object Greeter {
+  def greet(name: String)(implicit prompt: PreferredPrompt,
+      timeFormat: PreferredTimeFormat) = {
+    println(Foo.showTime(timeFormat.preference) + " " + "Welcome, " + name)
+    println(Foo.showTime(timeFormat.preference) + " " + prompt.preference)
+  }
+}
+
+object JohnsPreferences {
+  implicit val prompt = new PreferredPrompt("> $")
+  implicit val timeFormat = new PreferredTimeFormat("hh:mm:ss")
+}
+
+import JohnsPreferences._ // bring the vals into scope!
+
+Greeter.greet("John")
+```
+
+- Another thing to have in mind is that implicit parameters are often used
+to provide information about a type mentioned explicitly in earlier
+parameter list
+
+For instance, consider a function which returns the maximum
+element of a list:
+
+```scala
+def maxListOrdering[T](elements: List[T])(ordering: Ordering[T]): T =
+  elements match {
+    case List() => throw new IllegalArgumentException()
+    case List(x) => x
+    case x :: rest =>
+      val maxRest = maxListOrdering(rest)(ordering)
+      if (ordering.gt(x, maxRest)) x
+      else maxRest
+  }
+```
+
+The additional argument `ordering` specifies which ordering to use
+comparing elements of type `T`, as such, this version can be used for
+types that don't have a built-in ordering and can as well be used for
+types that do have a built-in ordering, but for which you want to use
+some other ordering.
+
+Although more general, it's a bit inconvinient to use: a caller must
+specify an explicit ordering even if `T` is a type that has an obvious
+default ordering such as `String` or `Int`. Let's consider the following
+improvement:
+
+```scala
+def maxListOrdering[T](elements: List[T])(implicit ordering: Ordering[T]): T
+  elements mathc {
+    case List() => throw new IllegalArgumentException()
+    case List(x) => x
+    case x :: rest =>
+      val maxRest = maxListOrdering(rest)(ordering)
+      if (ordering.gt(x, maxRest)) x
+      else maxRest
+  }
+```
+
+which is an example of an implicit parameter used to provide more
+information about a type explicitly mentioned previously in a parameter
+list: the implicit parameter `ordering` of type `Ordering[T]` provides more
+information about `T` - how to order `T`s and `T` obviously appears in the
+earlier parameter list.
+
+The fundamental thing is that elements must be provided explicitly, so the
+compiler will know T at compile time and can therefore determine whether an
+implicit definition of type Ordering[T] is available; if so, it can pass the
+second argument implicitly. In fact, this pattern is so common that Scala
+provides implicit ordering methods for most of the common types.
+
+```scala
+maxListOrdering(List(1, 8, 2, 17)) // 17
+maxListOrdering(List(33.3, 5.2, 6.7, 3.14)) // 33.3
+maxListOrdering(List("ab", "xy", "cd")) // ab
+```
+
+### A note on the naming of implicit parameters
+
+- It's best to use a custom named type in the types of implicit
+parameters, e.g like `PreferredPrompt` and `PreferredTimeFormat`
+- Consider, however, a poor implementation of the max example we showed
+earlier:
+
+```scala
+def maxList[T](element: List[T])(implicit orderer: (T, T) => Boolean): T
+```
+
+This is bad, because it's a fairly generic type and it doesn't indicate at
+all what the purpose of the type is; it could be an equality test, a less
+than test, or whatever. Using `Ordering[T]` on the other hand,
+clearly indicates that the implicit parameter is used for ordering
+elements of `T`.
