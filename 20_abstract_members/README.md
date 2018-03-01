@@ -661,3 +661,89 @@ abstract class Dollar extends AbstractCurrency {
   def designation = "USD"
 }
 ```
+
+This design is definitely an improvement, but we can do better. Note that
+we've purposely left out the definitions of the `*` and `+` methods in
+`AbstractCurrency`. How'd you implement them? Clearly you have to do
+`this.amount + that.amount`, but how'd you convert the amount into a
+currency of the right type?
+
+- One could try to solve the above problem like that:
+
+```scala
+def + (that: Currency): Currency = new Currency {
+  val amount = this.amount + that.amount
+}
+```
+
+- Although a good attempt, this would not compile
+- The reason is that you cannot create an instance of an abstract type
+- In the example, you cannot instantiate `Currency`
+
+The problem above can be solved using a factory method: instead of creating
+an instance of an abstract type directly, we can do it with an abstract
+method that does it; then, whenever you fix an abstract type to be some
+concrete type, you can subsequently give a concrete implementation of
+the factory method
+
+```scala
+abstract class AbstractCurrency {
+  type Currency <: AbstractCurrency
+  def make(amount: Long): Currency
+}
+```
+
+For the experienced reader, this might ring a bell. If you have some
+amount of currency, you also have the ability to make more of the same
+currency, using a construction such as
+
+```scala
+oneEuro.make(100) // a hundred more euros
+```
+
+The solution here is to move the abstract type and the factory method
+outside of `AbstractCurrency`.  We'll create a `CurrencyZone`, which
+semantically resembles a region that has the same currency, which will
+contains the `AbstractCurrency` class, the `Currency` type and the
+`make` factory method:
+
+```scala
+abstract class CurrencyZone {
+  type Currency <: AbstractCurrency
+  def make(x: Long): Currency
+  abstract class AbstractCurrency {
+    val amount: Long
+    def designation: String
+    override def toString = amount + " " + designation
+    def + (that: Currency): Currency =
+      make(this.amount + that.amount)
+    def * (x: Double): Currency =
+      make((this.amount * x))
+  }
+}
+```
+
+An example usage is as follows:
+
+```scala
+object UnitedStates extends CurrencyZone {
+  abstract class Dollar extends AbstractCurrency {
+    def designation = "USD"
+  }
+
+  type Currency = Dollar
+
+  def make(x: Long) = new Dollar {
+    val amount = x
+  }
+}
+```
+
+where `UnitedStates` is some currency zone that uses `Dollar`s; so the
+type of money in this zone is `UnitedStates.Dollar` (where the
+`UnitedStates` object also fixes the type of `Currency`) and gives an
+implementation of the `make` factory method to return a dollar amount.
+
+- Also, another limitation to mention of abstract types is that you cannot
+inherit from an abstract type
+
