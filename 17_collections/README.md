@@ -232,3 +232,168 @@ def countWords(text: String) = {
 | words -= "foo"                                | Removes a map entry                            |
 | words ++= List("bar" -> 2, "baz" -> 3)        | Adds multiple map entries                      |
 | words --= List("bar", "baz")                  | Removes multiple map entries                   |
+
+### Default sets and maps
+
+- The implementation provided by the default factories that create
+sets and maps typically uses a fast lookup algorithm that involes a hash
+table
+
+For instance, for mutable sets and maps, we have the following:
+
+|  Collection factory method     | Return type                      |
+|--------------------------------|----------------------------------|
+| scala.collection.mutable.Set() | scala.collection.mutable.HashSet |
+| scala.collection.mutable.Map() | scala.collection.mutable.HashMap |
+
+For immutable sets and maps, the picture is a bit different.
+
+- The class returned by `scala.collection.immutable.Set()` depends on the
+number of elements
+- For sets with less than five elements, a special class with fixed set
+size is used for better performance; otherwise, it returns an implementation
+with hash tries
+
+| Number of elements | Return type                         |
+|--------------------|-------------------------------------|
+| 0                  | scala.collection.immutable.EmptySet |
+| 1                  | scala.collection.immutable.Set1     |
+| 2                  | scala.collection.immutable.Set2     |
+| 3                  | scala.collection.immutable.Set3     |
+| 4                  | scala.collection.immutable.Set4     |
+| >= 5               | scala.collection.immutable.HashSet  |
+
+- The above statements apply to `scala.collection.immutable.Map()` as well:
+
+| Number of key-value pairs | Return type                         |
+|---------------------------|-------------------------------------|
+| 0                         | scala.collection.immutable.EmptyMap |
+| 1                         | scala.collection.immutable.Map1     |
+| 2                         | scala.collection.immutable.Map2     |
+| 3                         | scala.collection.immutable.Map3     |
+| 4                         | scala.collection.immutable.Map4     |
+| >= 5                      | scala.collection.immutable.HashMap  |
+
+### Sorted sets and sorted maps
+
+- Sometimes you may need a set or a map that returns elements in particular
+    order
+- For this purpose, there exist the `SortedSet` and `SortedMap` traits,
+which are backed by `TreeSet` and `TreeMap`, both implemented with a
+red-black tree
+- The order is determined by the `Ordered` trait, which the element type
+should either mix in or be implicitly convertible to (we'll explain what
+the latter means in later lecture)
+- Note that sorted sets and maps only have immutable variants
+
+Examples:
+
+```scala
+import scala.collection.immutable.TreeSet
+import scala.collection.immutable.TreeMap
+
+val foo = TreeSet(1, 5, 3, 2, 8, 4) // TreeSet(1, 2, 3, 4, 5, 8)
+
+var bar = TreeMap(3 -> "foo", 2 -> "bar", 4 -> "baz")
+bar // TreeMap(2 -> bar, 3 -> foo, 4 -> baz)
+bar += (1 -> "hi")
+bar // TreeMap(1 -> hi, 2 -> bar, 3 -> foo, 4 -> baz)
+```
+
+## Choosing mutable vs immutable collections
+
+- When in doubt, it's better to start with an immutable collection and then
+switch over to a mutable collection (because immutable collections are
+easier to reason about)
+- Besides being easier to reason about, immutable collections can usually
+be stored more compactly than mutable collections as long as the element
+count is low
+
+## Initializing collections
+
+- As you've seen so far, the most common way to initialize a collection is
+to pass the initial elements to a factory method:
+
+```scala
+val xs = List(1, 2, 3)
+val foo = Set('a', 'b', 'c')
+val occurrences = Map("foo" -> 1, "bar" -> 3)
+```
+
+- Of course, you can let the compiler infer the types like in the above
+example or be explicit:
+
+```scala
+import scala.collection.mutable
+val foo = mutable.Set[Int](2)
+```
+
+### Converting between mutable and immutable sets and maps
+
+- Sometimes you have to convert between the mutable and immutable variant
+of a collection
+- Here's a technique that accomplishes it fairly straightforward:
+
+```scala
+import scala.collection.mutable
+val treeSet = TreeSet("foo", "bar", "baz")
+
+val mutableSet = mutable.Set.empty ++= treeSet
+val immutableSet = Set.empty ++ mutableSet
+
+val mutableMap = mutable.Map("foo" -> 1, "bar" -> 2)
+val immutableMap = Map.empty ++ mutableMap
+```
+
+## Tuples
+
+- A tuple combines a fixed number of items together; you can think of
+tuples in mathematics
+- Unlike an array or list, a tuple can hold objects with different types
+
+```scala
+(33, "yes", PreferredDrink)
+```
+
+- Tuples can be used a replacement of simple, but data-heavy classes,
+as they save the effort of choosing a class name, scope to define it in,
+and names for the members
+- One common idiom is to return multiple values from a method using tuples:
+
+```scala
+def longestWord(words: Array[String]) = {
+  var word = words(0)
+  var index = 0
+
+  for (i <- 1 until words.length)
+    if (words(i).length > word.length) {
+      word = words(i)
+      index = i
+    }
+  (word, index)
+}
+
+val longest = longestWord("This is totally crazy".split(" "))
+```
+
+- To access the i-th element of a tuple, you use the `._i` syntax (which is
+    actually a method call)
+
+```scala
+longest._1 // totally
+longest._2 // 2
+```
+
+or, equivalently
+
+```scala
+val (word, index) = longest
+word // totally
+index // 2
+```
+
+- All in all, tuples are great when you combine data has no strict
+meaning beyond "a x and a y"
+- However, whenever the combination has semantics, or needs methods,
+it's better to encapsulate it in a class (e.g don't use a 3-tuple instead
+of a `Date` class)
