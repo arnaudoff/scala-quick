@@ -470,3 +470,33 @@ a subtype of `Publication` and the function type when given the parameter type
 `Book` is a supertype of the function type when given the parameter type
 `Publication`: in other words, `Publication => String` is a subtype of
 `Book => AnyRef`.
+
+## Upper bounds
+
+Say you have the following class, which can also be ordered:
+
+```scala
+class Person(val firstName: String, val lastName: String)
+  extends Ordered[Person] {
+
+  def compare(that: Person) = // ..
+  override def toString = firstName + " " + lastName
+}
+```
+
+and you want to sort a list of such objects, say using merge sort:
+
+```scala
+def mergeSort[T <: Ordered[T]](xs: List[T]): List[T] = {
+  def merge(xs: List[T], ys: List[T]): List[T] = // ..
+
+  // ..
+}
+```
+
+in order to require that the type of the list passed to the function mixes in
+`Ordered`, you use an *upper* bound. It's syntax is similar to a lower bound,
+except that instead of the `>:` you use the `<:` symbol. With the `T <:
+Ordered[T]` syntax you're basically saying that the element type of the list
+passed must be a subtype of `Ordered`, thus you can pass `List[Person]` because
+`Person` mixes in `Ordered`
