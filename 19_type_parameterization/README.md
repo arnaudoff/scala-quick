@@ -362,3 +362,111 @@ abstract class Cat[-T, +U] {
 in the above example, if we assume that the signs after the types refer to the
 sign of the positions as classified, then `T` is only used in negative
 positions, `U` is only used in positive positions so the class is type correct.
+
+## Lower bounds
+
+- As we saw in the last definition of `Queue`, it cannot be made covariant in T
+because `T` appears as a type of a parameter in a method (`enqueue`)
+- However, we can do a workaround: we can generalize `enqueue` by making it
+polymorphic, in other words, giving the enqueue method itself a type
+parameter and using a lower bound for it:
+
+```scala
+class Queue[+T](private val leading: List[T], private val trailing: List[T]) {
+  def enqueue[U :> T](x: U) = new Queue[U](leading, x :: trailing)
+}
+```
+
+- Defined that way, `enqueue` defines `T` as a lower bound for `U`, so `U` is
+required to be a supertype of `T`
+
+Let's consider an example: if you have a class `Animal` with two subclasses
+`Cow` and `Cat`, following the new definition it's possible to append a `Cow`
+to a a `Queue[Cat]` and the result will be `Queue[Animal]`.
+
+- Together, with queue covariance, this gives the flexibility for modeling
+queues of different element types
+- In fact, the above example shows something important: variance annotations and
+lower bounds are a good example of *type-driven design*, where the types of an
+interface guides its implementation
+
+## Contravariance
+
+- You might've wondered, what's the point of contravariance and where it makes
+    sense to use it, because at first sight it doesn't seem natural at all
+- There are cases, however, when it is natural to use contravariance
+
+```scala
+trait OutputStream[-T] {
+  def write(x: T)
+}
+```
+
+To see why this makes sense, let's take `String` and `AnyRef` as two sample
+types. All you can do to an `OutputStream[String]` is write a `String` to it,
+further, the same operation can also be done on an `OutputStream[AnyRef]`,
+so we can safely say that it's OK to substitute an `OutputStream[AnyRef]` for
+an `OutputStream[String]`.
+
+However, it will be problematic to substitute an `OutputStream[String]` where
+an `OutputStream[AnyRef]` is required, because you can send any object to an
+`OutputStream[AnyRef]`, whereas an `OutputStream[String]` requires written
+strings only, so you kind of enforce restriction that way.
+
+This is classical instance of the Liskov substitution principle, which occurs
+in type system design: it's safe to assume that a type `T` is a subtype of a
+type `U` if and only if you can substitute a value of type `T` wherever a value of
+type `U` is required.
+
+The principle holds if and only if `T` supports the same operations as `U` and
+they require less and provide more than the corresponding operations in `U`.
+
+### Mixing contravariance and covariance
+
+- So far, we haven't seen a mix of the two concepts
+- However, you can mix them in a single type: in fact, Scala's function traits
+    are a nice example of this mixture
+
+```scala
+trait Function1[-S, +T] {
+  def apply(x: S): T
+}
+```
+
+Whenever you write the function type `X => Y`, the compiler expands this to
+`Function1[X, Y]` and, as shown in the example, the `Function1` trait is
+contravariant in the function argument type `S` and covariant in the result type
+`T`. This makes sense if you think about it (in fact, it makes you realise why
+this works in other languages), but let's also show a concrete example:
+
+```scala
+class Publication(val title: String)
+class Book(title: String) extends Publication(title)
+
+object Library {
+  val books: Set[Book] = Set(new Book("foo"), new Book("bar"))
+
+  def printBooks(info: Book => AnyRef) = {
+    for (book <- books)
+      println(info(book))
+  }
+}
+
+object Customer extends App {
+  def getTitle(p: Publication): String = p.title
+  Library.printBooks(getTitle)
+}
+```
+
+The `printBooks` method iterates all books and invokes the passed function on
+each of the books, while passing the `AnyRef` result returned to `println`.
+Trivially, this works with `String` as well as any other subclass or `AnyRef`,
+thanks to the covariance of function result types.
+
+More interesting is the parameter type of the function being passed. Although
+the `printBook` definition requires a `Book`, we're passing a `Publication`.
+Since the argument is contravariant by definition, this works because `Book` is
+a subtype of `Publication` and the function type when given the parameter type
+`Book` is a supertype of the function type when given the parameter type
+`Publication`: in other words, `Publication => String` is a subtype of
+`Book => AnyRef`.
