@@ -312,3 +312,30 @@ your must define the four operations `map`, `flatMap`, `withFilter` and
 - has `foreach` defined, it allows `for` loops
 - has `withFilter` defined, it allows for filter expressions in the `for`
     expression
+
+A typical setup for some class that is parameterized, say `Foo`, which supports
+`for` expressions and `for` loop is as follows:
+
+```scala
+abstract class Foo[T] {
+  def map[U](f: T => U): Foo[U]
+  def flatMap[U](f: T => Foo[U]): Foo[U]
+  def withFilter(p: T => Boolean): Foo[U]
+  def foreach(block: T => Unit): Unit
+}
+```
+
+- In functional programming, there's a general concept called a *monad*, which
+    sort of explains a large number of types with computations, e.g.
+    collections, computations with state, I/O, transactions and so on.
+- Functions such as the first three  - `map`, `flatMap` and `withFilter` can be
+    formulated on a monad and if so, they end up having the same types as given
+    here
+- Additionally, every monad can be characterized by these three functions and a
+    "unit" constructor that produces a monad from an element value
+- So in summary, the first three methods can be seen as an object-oriented
+    version of the functional programming concept called monad
+
+There's something more to that. Since the for expressions are equivalent to
+these three methods, they can be seen as syntax for monads. In other words, the
+concept of a `for` expression is more general.
