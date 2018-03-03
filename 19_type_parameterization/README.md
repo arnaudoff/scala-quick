@@ -212,3 +212,153 @@ So, we said that `Queue[T]` generates a family of types. It's natural to look at
 the relationships between these types. For instance, are there any subtyping
 relationships between these types, e.g is `Queue[Int]` a subtype of
 `Queue[AnyRef]`?
+
+- In general, we say that if `S` is a subtype of `T` and from that follows that
+`Queue[S]` is is a subtype of `Queue[T]`, then the trait `Queue` is *covariant*.
+- So, if we have a method that takes `Queue[AnyRef]` we could well
+pass `Queue[Int]` to it as long as the `Queue` is covariant.
+
+In Scala, however, by default generic types have nonvariant subtyping, which
+means we cannot do the above. Nevertheless, we can explicitly state that we want
+covariant subtyping like that:
+
+```scala
+trait Queue[+T] { ... }
+```
+
+So, prefixing a formal type parameter with `+` indicates covariant subtyping for
+that parameter. Apart from `+`, there's a `-` prefix to formal type parameters
+
+```scala
+trait Queue[-T] { ... }
+```
+
+which stands for *contravariant* subtyping, which by definition means that if
+`T` is a subtype of `S`, then `Queue[S]` is a subtype of `Queue[T]`.
+
+- The *variance* of a parameter is whether the type parameter is covariant,
+    contravariant or nonvariant
+- The *variance annotations* are called the `+` and `-` symbols that you can
+    place before type parameters
+
+Typically, when writing functional code, many types are naturally covariant.
+However, when mutable data is in the game, the situation changes.
+
+Example:
+
+```scala
+class Cell[T](init: T) {
+  private[this] var current = init
+  def get = current
+  def set(x: T) = { current = x }
+}
+```
+
+The `Cell` type is declared nonvariant, but suppose it was declared covariant
+and it compiled fine, then you could do the following:
+
+```scala
+val firstCell = new Cell[String]("foo")
+val secondCell: Cell[Any] = firstCell
+secondCell.set(33)
+val value: String = firstCell.get
+```
+
+Clearly, this snippet ends up assigning the interger `33` to the string `value`,
+which is a type error. The problem lies in the covariant subtyping: a string `Cell`
+of is not also a `Cell` of `Any`. Why? Because there are operations you
+can perform with a `Cell` of `Any` that you cannot with a string `Cell`: e.g
+you cannot set an `Int` argument on a string `Cell`.
+
+- The nice thing is, however, that we assumed the above class had covariant
+variance; if we actually did it, the compiler will not let it pass
+
+- So far, the type violation we've seen involved a reassignable field
+- When we have immutable structures, however, they are often a good candidate
+for covariance, but missing a reassignable field is not a good indicator that
+covariance is appropriate
+
+For example, assume that the functional queue we developed is covariant.
+Then, suppose we have the following class:
+
+```scala
+class CustomIntegerQueue extends Queue[Int] {
+  override def enqueue(x: Int) = {
+    println(math.sqrt(x))
+    super.enqueue(x)
+  }
+}
+```
+
+Now, consider the usage:
+
+```scala
+val x: Queue[Any] = new CustomIntegerQueue // works because of covariance
+x.enqueue("abc")
+```
+
+clearly, you cannot take the square root of a string.
+
+**Note**: It turns out that as soon as a generic parameter type appears as the
+type of a method parameter, then the containing class or trait cannot be
+covariant in that type parameter
+
+```scala
+class Queue[+T] {
+  def enqueue(x: T) // ..
+}
+```
+
+Indeed, the reassignable field case we saw earlier is a special case of that
+rule, because a reassignable field is treated as a getter and setter method, and
+the setter method turns out to have a parameter of the field's type:
+
+```scala
+// the reassignable field
+var x: T
+
+// translates to
+def x: T
+def x_=(y: T) // <- note the type
+```
+
+## Checking variance annotations
+
+It's interesting to see how exactly the Scala compiler checks variance
+annotations.
+
+To verify the correctness of the annotations, the compiler classifies all
+positions where a type parameter may be used in a class or trait body as
+positive, negative or neutral.
+
+- For instance, every method value parameter is a position, because a method
+    value parameter has a type so a type parameter could appear in that position
+
+The compiler checks each use of each of the class's type parameters:
+- Type parameters annotated with `+` may only be used in positive positions
+- Type parameters annotated with `-` may only be used in negative positions
+- Type parameters that are not annotated (nonvariant) may be used in any
+    position and can be used in neutral positions as well
+
+### Classification of positions
+
+To classify the positions, the compiler starts from the declaration of a type
+parameter and then moves into deeper levels (think traversing a tree in depth).
+- Positions at the top level of the class are positive
+- Positions at deeper nesting levels are classified the same as those in the
+enclosing levels
+
+There are, however, exceptions to these rules which we will not discuss, but
+generally it's quite hard to keep track of variance positions so the compiler
+does it for you. Once the classifications are computed, the compiler checks that
+each type parameter is only used in positions that are classified appropriately:
+
+```scala
+abstract class Cat[-T, +U] {
+  def meow[W-](volume: T-, listener: Cat[U+, T-]-) : Cat[Cat[U+, T-]-, U+]+
+}
+```
+
+in the above example, if we assume that the signs after the types refer to the
+sign of the positions as classified, then `T` is only used in negative
+positions, `U` is only used in positive positions so the class is type correct.
