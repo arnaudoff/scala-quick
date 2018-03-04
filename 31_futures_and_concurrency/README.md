@@ -234,4 +234,206 @@ but you can also transform it in one operation:
 val valid = future collect { case result if result > 0 => result - 33 }
 valid.value // Some(Success(0))
 ```
+
+### Dealing with failure
+
+There's four methods that deal with futures that fail: `failed`, `recover`,
+`fallbackTo`, `recoverWith`.
+
+Let's look at `failed` first: its idea is to transform a failed future of any
+type **into a successful future** `Future[Throwable]` that holds the exception
+that caused the failure:
+
+```scala
+val failure = Future { 33 / 0 }
+failure.value // Some(Failure(java.lang.ArithmeticException))
+val successfulFuture = failure.failed
+successfulFuture.value // Some(Success(java.lang.ArithmeticException))
+```
+
+Clearly, it's a good idea to use `failed` when you expect a future to fail.
+
+Now, let's move on to `fallbackTo`: it allows you to provide an alternate future
+to use in case the future fails
+
+```scala
+val fallback = failure.fallbackTo(success)
+fallback.value // Some(Success(foo))
+```
+
+Needless to say, if the `success` future also fails, it is ignored and the
+failure of the initial future (which `fallbackTo` was invoked on) will be
+returned.
+
+Onto the `recover` method: allows you to transform a failed future into a
+successful one, however, if a the future is successful, the result is allowed to
+pass through unchanged:
+
+```scala
+val failed = Future { 33 / 0 }
+val failureRecovery = failed recover {
+  case ex: ArithmeticException => -1
+}
+failureRecovery.value // Some(Success(-1))
+
+val successful = Future { 33 / 1 }
+val successRecovery = successful recover {
+  case ex: ArithmeticException => -1
+}
+successRecovery.value // Some(Success(33))
+```
+
+Finally, `recoverWith` does the same as `recover`, but allows you to recover
+with a future value:
+
+```scala
+val recovered = failed recoverWith {
+  case ex: ArithmeticException => Future { 33 }
+}
+```
+
+Analogously to `recover`, if the `failed` feature didn't fail, the original
+result will be passed through `recovered`.
+
+### Mapping success and failure with `transform`
+
+`Future` has a `transform` method, which takes two functions with which it
+transforms a future depending on the success/failure of the future:
+
+```scala
+val first = success.transform(
+  res => res + 1,
+  ex => new Exception("something bad happened", ex)
+)
+```
+
+If the future succeeds, the first function is used for the transform:
+
+```scala
+first.value // Some(Success(34))
+```
+
+otherwise, the second function is used:
+
+```scala
+second.value // Some(Failure(java.lang.Exception))
+```
+
+However, you cannot change a successful future into a failed one and vice versa;
+you have to use an overloaded `transform` that takes a function from `Try` to
+`Try`
+
+```scala
+val first = success.transform {
+  case Success(res) => Success(res + 1)
+  case Failure(ex) => Failure(new Exception("something bad", ex))
+}
+
+first.value // Some(Success(34))
+```
+
+Clearly, this form  allows you to also flip a failure into a success and vice versa.
+
+### Combining futures
+
+Multiple futures can be combined. For example, `zip` will transform two
+successful futures into a future tuple of both values
+
+```scala
+// firstFuture returns Some(Success(33)) and secondFuture returns Some(Success(35))
+val futures = firstFuture zip secondFuture
+futures.value // Some(Success((33, 35)))
+```
+
+There's a more interesting method for combining, though. It's the `fold` method,
+which allows you to accumulate a result across a collection of futures.
+
+- If all futures in the collection succeed, the resulting future succeeds with
+the accumulated result; if any future in the collection fails, the resulting
+future fails
+
+```scala
+val five = Future { 1 + 4 }
+val seven = Future { 2 + 5 }
+val futureNumbers = List(five, seven)
+val folded = Future.fold(futureNumbers)(0) { (acc, num) => acc + num }
+```
+
+Now, `folded.value` should equal `Some(Success(12))`.
+
+There's another method similar to `fold` called `reduce`, which performs a fold
+without a zero: instead, the initial future result is used as the start value.
+
+```scala
+val reduced = Future.reduce(futureNumbers) { (acc, num) => acc + num }
+```
+
+And the last method of this class of methods we'll look at is `sequence`, which
+transforms a collection of futures into a future of the values, e.g a
+`List[Future[Int]]` to a `Future[List[Int]]`:
+
+```scala
+val futureList = Future.sequence(futureNumbers)
+futureList.value // Some(Success(List(5, 7)))
+```
+
+### Performing a side-effect after a future completes
+
+`Future` provides several methods that allow you to perform some side effect
+after a future completes. For instance, `foreach` will perform a side effect as
+soon as a future completes successfully:
+
+```scala
+success.foreach(res => println(res)) // 33
+```
+
+You can also register callback functions to futures. The `onComplete` method,
+for instance, will be executed when the future succeeds or fails:
+
+```scala
+import scala.util.{Success, Failure}
+success onComplete {
+  case Success(res) => println(res)
+  case Failure(ex) => println(ex)
+}
+```
+
+## Testing with `Future`s
+
+As early mentioned, one advantage of futures is that they avoid blocking. By
+avoiding it, you can keep a finite number of threads you decide to work with
+busy. However, if you need to, you can block on a future result: the `Await`
+object allows for blocking to wait for future results.
+
+For instance, `Await.result` takes a `Future` and a `Duration`, where the latter
+indicates how long `result` should wait for the `Future` to complete before
+timing out:
+
+```scala
+import scala.concurrent.Await
+import scala.concurrent.duration._
+
+val future = Future { Thread.sleep(10000); 15 + 18 }
+val x = Await.result(future, 15.seconds) // blocks
+```
+
+The above technique is especially useful when testing asynchronous code. As long
+as `Await.result` has returned, you can perform a computation using that result
+
+```scala
+import org.scalatest.Matchers._
+import org.scalatest.Matchers._
+
+x should be (33)
+```
+
+Alternatively, you can use the `ScalaFutures` trait, which
+supports blocking constructs. For instance, `futureValue` (which is implicitly
+added to `Future` by `ScalaFutures`) will block until the future completes:
+
+```scala
+import org.scalatest.concurrent.ScalaFutures._
+
+val future = Future { Thread.sleep(10000); 15 + 18 }
+future.futureValue should be (33) // blocks
 ```
