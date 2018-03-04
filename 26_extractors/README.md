@@ -173,3 +173,75 @@ domain match {
 - In the example, sequence wildcard pattern is used at the end of the argument
     list so that sub-domains of arbitrary depth can be matched (in fact, this is
     why domains are in reverse order)
+
+Now, if want to support vararg matching, where patterns have varying number of
+sub-patterns
+
+```scala
+object Domain {
+  def apply(parts: String*): String =
+    parts.reverse.mkString(".")
+  def unapplySeq(str: String): Option[Seq[String]] =
+    Some(whole.split("\\.").reverse)
+}
+```
+
+we have to define an `unapplySeq` method, and the result of `unapplySeq` should
+conform to `Option[Seq[T]]`
+
+## Extractors and sequence patterns
+
+As previously explained, you can access list/array elements using sequence
+patterns such as
+
+```scala
+List()
+List(x, _*)
+Array(x, 33, 35, _)
+```
+
+these sequence patterns are all implemented using extractors. For instance,
+thanks to the below definition you can write expressions such as `List()`,
+`List(1, 2)` and so on:
+
+```scala
+object List {
+  def apply[T](elems: T*) = elems.toList
+  def unapplySeq[T](x: List[T]): Option[Seq[T]] = Some(x)
+}
+```
+
+## Extractors vs case classes
+
+- You might've wondered what's the point of extractors if we already have case
+classes
+- Case classes have one disadvantage: they expose the concrete
+representation of data
+- In other words, the name of the class in a constructor pattern maps exactly
+to the concrete representation type of the selector object. For instance, if a
+match against
+
+```scala
+case Foo(..)
+```
+
+succeeds, then you know the selector expression is an instance of `Foo`.
+
+Extractors are exactly the tool which break the dependency between the patterns
+and data representation: in fact, they enable patterns that have nothing to do
+with the data type of the object that's selected on (as seen for strings).
+
+- More formally, we say that extractors offer *representation independence*
+
+Say you have a module that defines some case classes and clients that pattern
+match on these case classes. The problem of dependence is that since the pattern
+matches depend on the internal structure of the case classes, you are forced to
+not change them in the future because you'll break client code.
+
+Case classes, however, also have some advantages over extractors:
+- If your case classes inherit from a `sealed` base class, as explained the
+compiler will perform exhaustiveness check and complain if combinations are
+not covered
+- They usually account for more efficient pattern matches because the compiler
+optimizes better patterns over case classes
+- They're easier to setup/define and require less code
