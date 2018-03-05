@@ -107,3 +107,107 @@ class Foo {
   val pattern = regex.Pattern.compile("foo")
 }
 ```
+
+## Implicit imports
+
+As somewhere mentioned, the compiler adds some imports implicitly to every
+program. These imports are the following:
+
+```scala
+import java.lang._
+import scala._
+import Predef._
+```
+
+## Access modifiers
+
+- Members of objects, classes, or packages can be labeled with the access
+    modifiers private and protected
+- These modifiers restrict access to the members of certain regions of code
+
+### Private members
+
+- Treated similarly to Java: a member labeled private is visible only inside the
+    class or object that contains the member definition; in Scala this rule also
+    applies for inner classes
+
+```scala
+class Outer {
+  class Inner {
+    private def foo() = {}
+    class InnerMost {
+      foo() // OK
+    }
+  }
+  (new Inner).foo() // foo is not accessible
+}
+```
+
+### Protected members
+
+- A `protected` member is only accessible from subclasses of the class in which
+    the member is defined
+
+```scala
+package foo {
+  class Base {
+    protected def foo() = {}
+  }
+
+  class Bar extends Base {
+    foo()
+  }
+
+  class Baz {
+    (new Base).foo() // doesn't compile, inaccessible
+  }
+}
+```
+
+### Public members
+
+Scala has no explicit modifier for public members: any member that is not
+`private` or `protected` is public by default and can be accessed from anywhere.
+
+### Scope of protection
+
+- Access modifiers can be given qualifiers: a modifiers of the form `private[X]`
+    or `protected[X]` means that access is private or protected up to `X` where
+    `X` is a class, object or package
+- Qualified access modifiers allow you to express the package private, protected
+    or private up to outermost class that exist in Java, but are not possible
+    to define with the simple modifiers
+
+```scala
+package university
+
+package teachers {
+  private[university] class Teacher {
+    protected[teachers] def markStudents() = {}
+    class Experience {
+      private[Teacher] val years = 1
+    }
+    private[this] var roomNumber = 200
+  }
+}
+
+package subjects {
+  import teachers._
+  object Subject {
+    private[subjects] val teacher = new Teacher
+  }
+}
+```
+
+In the above example, the `Teacher` class is only visible in all classes/objects
+that are contained in the `university` package (`Subject` is part of it).
+Otherwise, if the qualifier of the `private` access modifier is directly the
+enclosing package, then the effect of the modifier is equivalent to Java's
+package private access.
+
+Also, often you'd see code such as `private[this]` - this is to enable access
+only from the same object and is thus called *object-private*. This means that
+any access must not only be from within the class (say `Teacher` in the example),
+but must also be made from the very same instance. Put differently, marking a
+member `private[this]` is a guarantee that it will not be seen from other
+objects of the same class.
