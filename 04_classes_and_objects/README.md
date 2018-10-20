@@ -87,7 +87,7 @@ yield one value, which is returned
 - In fact, this way of thinking forces you to refactor large methods into
 small, concise ones
 
-We can be even more concise: if a method computer only a single expression, you
+We can be even more concise: if a method computes only a single expression, you
 can omit the curly braces
 
 ```scala
@@ -174,7 +174,7 @@ object
 - Singleton objects, unlike classes, cannot take parameters (because you can't
     instantiate them in the first place)
 - Singleton objects are typically implemented as an instance of a *synthetic
-class* (objct name + dollar sign, e.g. `ChecksumAccumulator$`) referenced from
+class* (object name + dollar sign, e.g. `ChecksumAccumulator$`) referenced from
 a static variable (they have similar initialization semantics as Java statics:
 a singleton object is initialized the first time some code accesses it)
 - A singleton object that does not have a companion class is called a *standalone
@@ -255,7 +255,7 @@ object Foo extends App {
 ```
 - Note that instead of writing a `main` method, you place the code you
 would've put in the `main` method directly in the singleton object
-- The `Application` trait itself declares a `main` method, which the singleton
+- The `App` trait itself declares a `main` method, which the singleton
 object inherits
 - The code between the curly braces is collected into a *primary constructor* of
 the singleton object, and is executed as soon as the class is initialized
