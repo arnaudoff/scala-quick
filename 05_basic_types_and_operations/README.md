@@ -44,7 +44,7 @@ forms: decimal, hexadecimal, and octal
 val hexMeme = 0xcafebabe
 ```
 
-- If a number begins with a zero, it's octal (base 8)
+- ***(Deprecated)*** If a number begins with a zero, it's octal (base 8)
 
 ```scala
 val foo = 042
