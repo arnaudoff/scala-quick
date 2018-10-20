@@ -17,7 +17,7 @@ something out of this guide as well :)
 - the casual dev who wants to quickly dive into Scala
 - especially useful for people with limited time as a resource
 - the reader is expected to have general programming knowledge as well as
-knowledge of common idioms/terminology (e.g I'm not going to define what immutabilityis)
+knowledge of common idioms/terminology (e.g I'm not going to define what immutability is)
 
 
 ## Structure
