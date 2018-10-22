@@ -41,7 +41,7 @@ to corrupt its state once it's been properly constructed, because no thread can
 change it
 - Immutable objects make safe hash table keys, while mutable objects can be
 mutated after they are placed into a hash table, meaning they may not be
-found the next time he hash table is accessed
+found the next time the hash table is accessed
 - Immutable objects, however, have a disadvantage: they sometimes require that a
 large object graph is copied, where an update could be done in place, which
 might cause a performance bottleneck
@@ -52,7 +52,7 @@ immutable `String`
 
 ## Constructing a `Rational`
 
-- Given we've decided to model `Rational` so that its object are immutable,
+- Given we've decided to model `Rational` so that its objects are immutable,
 we'll require that clients provide all data needed by the object (a
 numerator and a denominator) upon instance construction:
 
