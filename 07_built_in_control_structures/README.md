@@ -517,7 +517,7 @@ than shadowing an outer variable
 
 ## Refactoring imperative-style code
 
-In this lecture, we will again look at a imperative to functional conversion
+In this lecture, we will again look at an imperative to functional conversion
 just so you can get a feel for the functional style faster.
 
 Example (printing a multiplication table):

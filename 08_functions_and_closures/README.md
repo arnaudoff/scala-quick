@@ -2,7 +2,7 @@
 
 We deal with large programs and complexity by dividing these large
 programs into smaller, manageable pieces. Scala offers a technique for
-doing that: the concept of a function. In fact, Scala extends this
+doing that: the concept of a function. In fact, Scala extends
 this familiar concept by offering several ways to define functions;
 there's also function literals and function values, which we will talk
 about in this lecture.
